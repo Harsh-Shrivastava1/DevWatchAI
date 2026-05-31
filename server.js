@@ -5,6 +5,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const aiRoutes = require("./routes/aiRoutes");
+const platformRoutes = require("./routes/platformRoutes");
 require("./models");
 
 const app = express();
@@ -48,6 +49,7 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/api/ai", aiRoutes);
+app.use("/api", platformRoutes);
 
 app.use((_request, response) => {
   response.status(404).json({

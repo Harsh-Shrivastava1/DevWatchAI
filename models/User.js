@@ -35,7 +35,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    lastLoginAt: Date
+    lastLoginAt: Date,
+    onboardingCompleted: {
+      type: Boolean,
+      default: false
+    },
+    onboardingCompletedAt: Date
   },
   { timestamps: true }
 );

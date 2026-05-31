@@ -1,5 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const { Member, Project, Workspace } = require("../models");
+const { requireAuth } = require("../middleware/auth");
 const {
   aiAutoFix,
   aiBugDetection,
@@ -10,6 +12,8 @@ const {
 } = require("../services/aiService");
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 function asyncHandler(handler) {
   return (request, response, next) => {
@@ -38,13 +42,43 @@ function optionalObjectId(value, fieldName) {
   return value;
 }
 
+async function ensureProjectAccess(userId, projectId) {
+  if (!projectId) return null;
+
+  const project = await Project.findById(projectId).select("workspaceId");
+  if (!project) {
+    const error = new Error("Project not found.");
+    error.status = 404;
+    throw error;
+  }
+
+  const [workspace, member] = await Promise.all([
+    Workspace.findById(project.workspaceId).select("ownerId"),
+    Member.findOne({
+      workspaceId: project.workspaceId,
+      userId,
+      status: "active"
+    })
+  ]);
+
+  if (String(workspace?.ownerId) !== String(userId) && !member) {
+    const error = new Error("You do not have access to this project.");
+    error.status = 403;
+    throw error;
+  }
+
+  return project;
+}
+
 router.post(
   "/review",
   asyncHandler(async (request, response) => {
+    const projectId = optionalObjectId(request.body.projectId, "projectId");
+    await ensureProjectAccess(request.user._id, projectId);
     const result = await aiCodeReview({
-      projectId: optionalObjectId(request.body.projectId, "projectId"),
+      projectId,
       fileId: optionalObjectId(request.body.fileId, "fileId"),
-      requestedBy: optionalObjectId(request.body.requestedBy, "requestedBy"),
+      requestedBy: request.user._id,
       filePath: request.body.filePath,
       code: request.body.code
     });
@@ -128,9 +162,11 @@ router.post(
 router.post(
   "/project-analysis",
   asyncHandler(async (request, response) => {
+    const projectId = requireString(request.body.projectId, "projectId");
+    await ensureProjectAccess(request.user._id, projectId);
     const result = await aiProjectAnalysis({
-      projectId: requireString(request.body.projectId, "projectId"),
-      requestedBy: optionalObjectId(request.body.requestedBy, "requestedBy")
+      projectId,
+      requestedBy: request.user._id
     });
 
     response.status(200).json({

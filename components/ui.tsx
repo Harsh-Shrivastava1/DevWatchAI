@@ -67,7 +67,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-neutral-100 bg-white shadow-sm hover:shadow-md hover:border-neutral-200/60 transition-all duration-300",
+        "rounded-lg border border-neutral-200 bg-white transition-colors duration-200",
         className
       )}
       {...props}

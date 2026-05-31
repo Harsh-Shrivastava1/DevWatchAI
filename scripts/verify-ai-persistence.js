@@ -11,6 +11,8 @@ const {
 } = require("../models");
 const { aiCodeReview } = require("../services/aiService");
 
+let stage = "idle";
+
 async function cleanupSmokeData() {
   const oldUsers = await User.find({ email: /^ai-smoke-/ }).select("_id").lean();
   const oldUserIds = oldUsers.map((user) => user._id);
@@ -39,9 +41,12 @@ async function cleanupSmokeData() {
 }
 
 async function main() {
+  stage = "connect";
   await connectDB();
+  stage = "cleanup-before";
   await cleanupSmokeData();
 
+  stage = "create-smoke-records";
   const stamp = Date.now();
   const user = await User.create({
     name: "AI Smoke Test",
@@ -59,12 +64,14 @@ async function main() {
     members: [user._id]
   });
 
+  stage = "groq-review";
   const result = await aiCodeReview({
     projectId: String(project._id),
     requestedBy: String(user._id),
     filePath: "/src/smoke.js",
     code: "function divide(a,b){ return a / b }"
   });
+  stage = "count-review";
   const reviewCount = await AIReview.countDocuments({ projectId: project._id });
 
   console.log(
@@ -75,12 +82,13 @@ async function main() {
     })
   );
 
+  stage = "cleanup-after";
   await cleanupSmokeData();
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error.message);
+    console.error(`[${stage}] ${error.message}`);
     process.exit(1);
   });

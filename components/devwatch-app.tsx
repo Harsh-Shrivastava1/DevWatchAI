@@ -1,90 +1,112 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AuthModal } from "@/components/auth-modal";
 import { CloudIDE } from "@/components/cloud-ide";
 import { LandingPage } from "@/components/landing-page";
+import { OnboardingFlow } from "@/components/onboarding-flow";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { AuthModal } from "@/components/auth-modal";
-import type { AppView } from "@/lib/mock-data";
-import { projects } from "@/lib/mock-data";
+import type { AppView, Project, UserSession } from "@/lib/types";
 
-export interface UserSession {
-  uid: string;
-  email: string;
-  name: string;
-  photoURL?: string;
-  token?: string;
-}
+const SESSION_KEY = "devwatch_session";
 
 export function DevWatchApp() {
   const [view, setView] = useState<AppView>("landing");
-  const [projectId, setProjectId] = useState(projects[0].id);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState<string | undefined>();
   const [user, setUser] = useState<UserSession | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [initialViewMode, setInitialViewMode] = useState<"signin" | "signup">("signin");
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Load session from localStorage on mount
   useEffect(() => {
+    const stored = window.localStorage.getItem(SESSION_KEY);
+    if (!stored) return;
+
     try {
-      const stored = localStorage.getItem("devwatch_session");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUser(parsed);
+      const session = JSON.parse(stored) as UserSession;
+      if (session?.token && session.email) {
+        setUser(session);
         setView("overview");
+        setOnboardingOpen(Boolean(session.onboardingRequired));
       }
-    } catch (e) {
-      console.error("Failed to parse stored session", e);
+    } catch {
+      window.localStorage.removeItem(SESSION_KEY);
     }
   }, []);
 
-  function handleLoginSuccess(session: UserSession) {
+  function persistSession(session: UserSession) {
     setUser(session);
-    localStorage.setItem("devwatch_session", JSON.stringify(session));
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+
+  function handleAuthSuccess(session: UserSession) {
+    persistSession(session);
     setAuthModalOpen(false);
+    setView("overview");
+    setOnboardingOpen(Boolean(session.onboardingRequired));
+  }
+
+  function handleOnboardingComplete(session: UserSession, project?: Project) {
+    const nextSession = {
+      ...session,
+      onboardingRequired: false,
+      onboardingCompleted: true
+    };
+    persistSession(nextSession);
+    setOnboardingOpen(false);
+
+    if (project) {
+      openProject(project.id, project.projectName);
+      return;
+    }
+
     setView("overview");
   }
 
   function handleSignOut() {
     setUser(null);
-    localStorage.removeItem("devwatch_session");
+    setProjectId(null);
+    setProjectName(undefined);
+    window.localStorage.removeItem(SESSION_KEY);
     setView("landing");
   }
 
-  function openProject(id: string) {
+  function openAuth(mode: "signin" | "signup") {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  }
+
+  function openProject(id: string, name?: string) {
     setProjectId(id);
+    setProjectName(name);
     setView("ide");
   }
 
-  function triggerLogin() {
-    setInitialViewMode("signin");
-    setAuthModalOpen(true);
-  }
-
-  function triggerSignup() {
-    setInitialViewMode("signup");
-    setAuthModalOpen(true);
-  }
-
-  if (view === "landing") {
+  if (!user || view === "landing") {
     return (
       <>
         <LandingPage
-          onEnter={triggerLogin}
-          onExplore={triggerSignup}
+          onEnter={() => openAuth("signin")}
+          onExplore={() => openAuth("signup")}
         />
         <AuthModal
+          initialMode={authMode}
           isOpen={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
-          onSuccess={handleLoginSuccess}
+          onSuccess={handleAuthSuccess}
         />
       </>
     );
   }
 
-  if (view === "ide") {
+  if (view === "ide" && projectId) {
     return (
       <CloudIDE
         projectId={projectId}
+        projectName={projectName}
+        token={user.token}
+        user={user}
         onBack={() => setView("projects")}
         onDashboard={() => setView("overview")}
       />
@@ -92,13 +114,22 @@ export function DevWatchApp() {
   }
 
   return (
-    <WorkspaceShell
-      view={view}
-      onViewChange={setView}
-      onOpenProject={openProject}
-      onHome={() => setView("landing")}
-      user={user}
-      onSignOut={handleSignOut}
-    />
+    <>
+      <WorkspaceShell
+        user={user}
+        view={view === "ide" ? "overview" : view}
+        onHome={() => setView("landing")}
+        onOpenProject={openProject}
+        onSignOut={handleSignOut}
+        onViewChange={setView}
+      />
+      <OnboardingFlow
+        isOpen={onboardingOpen}
+        token={user.token}
+        user={user}
+        onComplete={handleOnboardingComplete}
+        onClose={() => setOnboardingOpen(false)}
+      />
+    </>
   );
 }

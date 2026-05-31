@@ -30,6 +30,12 @@ function buildAuth(parsed) {
   return username ? `${username}:${password}@` : "";
 }
 
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 async function resolveSrvParts(mongoUri) {
   const parsed = new URL(mongoUri);
 
@@ -67,6 +73,41 @@ async function buildDirectUriFromSrv(mongoUri) {
   return `mongodb://${parts.auth}${hosts}${parts.path}?${parts.params.toString()}`;
 }
 
+async function isWritablePrimary(uri) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const client = new mongoose.mongo.MongoClient(uri, {
+      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000
+    });
+
+    try {
+      await client.connect();
+      const hello = await client.db("admin").command({ hello: 1 });
+      if (
+        process.env.MONGODB_DEBUG_CONNECTION === "true" &&
+        !hello.isWritablePrimary
+      ) {
+        console.warn(`MongoDB host ${new URL(uri).host} is not writable primary.`);
+      }
+      if (hello.isWritablePrimary) {
+        return true;
+      }
+    } catch (error) {
+      if (process.env.MONGODB_DEBUG_CONNECTION === "true") {
+        console.warn(
+          `MongoDB primary probe failed for ${new URL(uri).host}: ${error.message}`
+        );
+      }
+    } finally {
+      await client.close().catch(() => {});
+    }
+
+    await wait(300);
+  }
+
+  return false;
+}
+
 async function buildWritablePrimaryUriFromSrv(mongoUri) {
   const parts = await resolveSrvParts(mongoUri);
   if (!parts) {
@@ -78,25 +119,20 @@ async function buildWritablePrimaryUriFromSrv(mongoUri) {
   params.delete("replicaSet");
 
   if (process.env.MONGODB_PRIMARY_HOST) {
-    return `mongodb://${parts.auth}${process.env.MONGODB_PRIMARY_HOST}${parts.path}?${params.toString()}`;
+    const configuredUri = `mongodb://${parts.auth}${process.env.MONGODB_PRIMARY_HOST}${parts.path}?${params.toString()}`;
+    if (await isWritablePrimary(configuredUri)) {
+      return configuredUri;
+    }
+
+    console.warn(
+      "Configured MongoDB primary host was unavailable; probing current Atlas primary."
+    );
   }
 
   for (const record of parts.srvRecords) {
     const uri = `mongodb://${parts.auth}${record.name}:${record.port}${parts.path}?${params.toString()}`;
-    const client = new mongoose.mongo.MongoClient(uri, {
-      serverSelectionTimeoutMS: 5000
-    });
-
-    try {
-      await client.connect();
-      const hello = await client.db("admin").command({ hello: 1 });
-      if (hello.isWritablePrimary) {
-        return uri;
-      }
-    } catch {
-      // Keep probing the remaining Atlas hosts.
-    } finally {
-      await client.close().catch(() => {});
+    if (await isWritablePrimary(uri)) {
+      return uri;
     }
   }
 
@@ -120,59 +156,80 @@ async function connectDB() {
 
   try {
     const options = {
+      connectTimeoutMS: 10000,
       serverSelectionTimeoutMS: 10000,
-      maxPoolSize: 10,
+      maxPoolSize: Number(
+        process.env.MONGODB_MAX_POOL_SIZE ||
+          (process.env.MONGODB_FORCE_PRIMARY_DIRECT === "true" ? 1 : 10)
+      ),
       tls: mongoUri.startsWith("mongodb+srv://")
     };
 
     let connection;
 
-    try {
-      if (
-        process.env.MONGODB_FORCE_PRIMARY_DIRECT === "true" &&
-        mongoUri.startsWith("mongodb+srv://")
-      ) {
+    if (
+      process.env.MONGODB_FORCE_PRIMARY_DIRECT === "true" &&
+      mongoUri.startsWith("mongodb+srv://")
+    ) {
+      let lastPrimaryError;
+
+      for (let attempt = 0; attempt < 4; attempt += 1) {
         const primaryUri = await buildWritablePrimaryUriFromSrv(mongoUri);
         if (!primaryUri) {
-          throw new Error("Could not resolve a writable MongoDB primary.");
+          lastPrimaryError = new Error("Could not resolve a writable MongoDB primary.");
+          await wait(500);
+          continue;
         }
 
-        connection = await mongoose.connect(primaryUri, {
-          ...options,
-          tls: true,
-          directConnection: true
-        });
-      } else {
-        connection = await mongoose.connect(mongoUri, options);
-      }
-    } catch (error) {
-      const fallbackUri = await buildDirectUriFromSrv(mongoUri);
-      if (!fallbackUri) {
-        throw error;
+        try {
+          connection = await mongoose.connect(primaryUri, {
+            ...options,
+            tls: true,
+            directConnection: true
+          });
+          break;
+        } catch (error) {
+          lastPrimaryError = error;
+          await mongoose.disconnect().catch(() => {});
+          await wait(500);
+        }
       }
 
-      console.warn(
-        "MongoDB SRV connection failed; retrying with resolved seed list."
-      );
+      if (!connection) {
+        throw lastPrimaryError;
+      }
+    } else {
       try {
-        connection = await mongoose.connect(fallbackUri, {
-          ...options,
-          tls: true
-        });
-      } catch (seedListError) {
-        const primaryUri = await buildWritablePrimaryUriFromSrv(mongoUri);
-        if (!primaryUri) {
-          throw seedListError;
+        connection = await mongoose.connect(mongoUri, options);
+      } catch (error) {
+        const fallbackUri = await buildDirectUriFromSrv(mongoUri);
+        if (!fallbackUri) {
+          throw error;
         }
 
         console.warn(
-          "MongoDB seed-list connection failed; retrying writable primary directly."
+          "MongoDB SRV connection failed; retrying with resolved seed list."
         );
-        connection = await mongoose.connect(primaryUri, {
-          ...options,
-          tls: true,
-          directConnection: true
-        });
+        try {
+          connection = await mongoose.connect(fallbackUri, {
+            ...options,
+            tls: true
+          });
+        } catch (seedListError) {
+          const primaryUri = await buildWritablePrimaryUriFromSrv(mongoUri);
+          if (!primaryUri) {
+            throw seedListError;
+          }
+
+          console.warn(
+            "MongoDB seed-list connection failed; retrying writable primary directly."
+          );
+          connection = await mongoose.connect(primaryUri, {
+            ...options,
+            tls: true,
+            directConnection: true
+          });
+        }
       }
     }
 
