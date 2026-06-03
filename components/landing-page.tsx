@@ -178,58 +178,157 @@ export function LandingPage({
 
 function ProductPreview() {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-neutral-950 p-3 text-white">
-      <div className="grid min-h-[520px] overflow-hidden rounded-md border border-white/10 bg-neutral-900 lg:grid-cols-[190px_minmax(0,1fr)_220px]">
-        <aside className="border-r border-white/10 bg-neutral-950 p-4">
-          <div className="mb-5 h-8 rounded bg-white/10" />
-          {["Overview", "Projects", "AI Reviews", "Monitoring", "Team"].map((item) => (
-            <div
-              className="mb-2 rounded-md border border-white/10 px-3 py-2 text-sm text-neutral-300"
-              key={item}
-            >
-              {item}
-            </div>
-          ))}
-        </aside>
-        <section className="min-w-0 p-4">
-          <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
-            <div>
-              <p className="text-sm font-semibold">/src/app.tsx</p>
-              <p className="text-xs text-neutral-400">MongoDB synced file</p>
-            </div>
-            <span className="rounded-md bg-emerald-500/15 px-2 py-1 text-xs text-emerald-200">
-              Saved
-            </span>
-          </div>
-          <pre className="overflow-hidden rounded-md bg-black/40 p-4 text-xs leading-6 text-neutral-300">
-            <code>{`export function Workspace() {
-  return (
-    <CloudIDE
-      aiProvider="groq"
-      storage="mongodb"
-    />
-  );
-}`}</code>
-          </pre>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {["Projects", "Reviews", "Members"].map((label) => (
-              <div className="rounded-md border border-white/10 p-3" key={label}>
-                <p className="text-xs text-neutral-400">{label}</p>
-                <div className="mt-3 h-2 rounded bg-white/10" />
+    <div className="relative w-full min-h-[480px] lg:min-h-[520px] flex items-center justify-center overflow-visible">
+      {/* Central Soft Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-gradient-to-tr from-blue-600/5 to-indigo-600/10 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* Connection Lines (Desktop only) */}
+      <svg
+        className="absolute inset-0 hidden md:block w-full h-full pointer-events-none"
+        viewBox="0 0 600 500"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#6366f1" />
+          </marker>
+        </defs>
+
+        {/* Connection paths exactly like the reference image */}
+        {/* 1. Center to right edge of AI Code Review */}
+        <path
+          d="M 280 185 C 280 150, 270 130, 248 130"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+          markerEnd="url(#arrow)"
+          opacity="0.6"
+        />
+
+        {/* 2. Above Team Collaboration to bottom of AI Code Review */}
+        <path
+          d="M 140 280 C 100 280, 70 240, 70 140"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+          markerEnd="url(#arrow)"
+          opacity="0.6"
+        />
+
+        {/* 3. Center to bottom of Real-time Monitoring */}
+        <path
+          d="M 320 285 C 360 285, 390 270, 390 210"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+          markerEnd="url(#arrow)"
+          opacity="0.6"
+        />
+
+        {/* 4. Below Team Collaboration to left of Advanced Analytics */}
+        <path
+          d="M 200 405 C 200 430, 250 430, 338 430"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+          markerEnd="url(#arrow)"
+          opacity="0.6"
+        />
+      </svg>
+
+      {/* Floating Layout for Desktop / Grid for Mobile */}
+      <div className="relative z-10 w-full h-full min-h-[480px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:block gap-4 w-full h-full min-h-[480px]">
+          
+          {/* Card 1: AI Code Review (Top-Left) */}
+          <div className="md:absolute md:top-[6%] md:left-[2%] md:w-[230px] bg-white rounded-2xl border border-neutral-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(99,102,241,0.08)] transition-all duration-300">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <Code2 size={22} />
               </div>
-            ))}
-          </div>
-        </section>
-        <aside className="border-l border-white/10 bg-neutral-950 p-4">
-          <p className="text-sm font-semibold">AI Review</p>
-          <div className="mt-4 space-y-3">
-            {["Structured JSON", "Security issues", "Auto-fix plan"].map((item) => (
-              <div className="rounded-md border border-white/10 p-3 text-sm text-neutral-300" key={item}>
-                {item}
+              <div className="flex flex-col justify-center">
+                <h4 className="text-sm font-semibold text-neutral-950">AI Code Review</h4>
+                <p className="mt-1.5 text-xs text-neutral-500 leading-relaxed">
+                  Find bugs, improve quality, and get intelligent suggestions in seconds.
+                </p>
               </div>
-            ))}
+            </div>
           </div>
-        </aside>
+
+          {/* Card 2: Real-time Monitoring (Top-Right) */}
+          <div className="md:absolute md:top-[20%] md:right-[2%] md:w-[230px] bg-white rounded-2xl border border-neutral-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(16,185,129,0.08)] transition-all duration-300">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <MonitorDot size={22} />
+              </div>
+              <div className="flex flex-col justify-center">
+                <h4 className="text-sm font-semibold text-neutral-950">Real-time Monitoring</h4>
+                <p className="mt-1.5 text-xs text-neutral-500 leading-relaxed">
+                  Monitor your infrastructure and services 24/7 with smart alerts and insights.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Logo Badge (Desktop only) */}
+          <div className="hidden md:flex md:absolute md:top-[50%] md:left-[50%] md:-translate-x-1/2 md:-translate-y-1/2 items-center justify-center z-20 pointer-events-none">
+            {/* Outer soft glow ring */}
+            <div className="absolute w-36 h-36 rounded-full bg-indigo-50/50 animate-pulse" />
+            {/* Outer border container */}
+            <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-lg border border-neutral-150/40">
+              {/* Inner ring */}
+              <div className="w-20 h-20 rounded-full bg-indigo-50/30 flex items-center justify-center">
+                {/* Central Diamond Logo */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center transform rotate-45 shadow-md animate-[spin_10s_linear_infinite_paused] hover:animate-[spin_10s_linear_infinite]">
+                  {/* Reverse rotation for contents */}
+                  <div className="-rotate-45 text-white flex items-center justify-center">
+                    <Code2 size={20} className="stroke-[2.5]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Team Collaboration (Bottom-Left) */}
+          <div className="md:absolute md:bottom-[20%] md:left-[4%] md:w-[230px] bg-white rounded-2xl border border-neutral-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(99,102,241,0.08)] transition-all duration-300">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <Users size={22} />
+              </div>
+              <div className="flex flex-col justify-center">
+                <h4 className="text-sm font-semibold text-neutral-950">Team Collaboration</h4>
+                <p className="mt-1.5 text-xs text-neutral-500 leading-relaxed">
+                  Collaborate in real time with chat, comments, and shared workspaces.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Advanced Analytics (Bottom-Right) */}
+          <div className="md:absolute md:bottom-[6%] md:right-[6%] md:w-[230px] bg-white rounded-2xl border border-neutral-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(59,130,246,0.08)] transition-all duration-300">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <BarChart3 size={22} />
+              </div>
+              <div className="flex flex-col justify-center">
+                <h4 className="text-sm font-semibold text-neutral-950">Advanced Analytics</h4>
+                <p className="mt-1.5 text-xs text-neutral-500 leading-relaxed">
+                  Track performance, productivity and deployment metrics in beautiful dashboards.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
@@ -292,8 +391,53 @@ function TrustItem({ icon, text }: { icon: ReactNode; text: string }) {
 
 function LogoMark() {
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-700 text-sm font-semibold text-white">
-      DW
-    </span>
+    <svg
+      className="w-10 h-10"
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient id="logo-outline-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="50%" stopColor="#7c3aed" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <g transform="rotate(45 50 50)">
+        <rect
+          x="26"
+          y="26"
+          width="48"
+          height="48"
+          rx="12"
+          stroke="url(#logo-outline-grad)"
+          strokeWidth="7.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </g>
+      <path
+        d="M 39 42 L 31 50 L 39 58"
+        stroke="url(#logo-outline-grad)"
+        strokeWidth="7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M 47 36 L 53 64"
+        stroke="url(#logo-outline-grad)"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 61 42 L 69 50 L 61 58"
+        stroke="url(#logo-outline-grad)"
+        strokeWidth="7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

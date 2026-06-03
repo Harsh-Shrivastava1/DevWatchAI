@@ -258,9 +258,54 @@ export function WorkspaceShell({
           onClick={onHome}
           type="button"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-700 text-sm font-semibold text-white">
-            DW
-          </span>
+          <svg
+            className="w-9 h-9"
+            viewBox="0 0 100 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient id="logo-outline-grad-shell" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#2563eb" />
+                <stop offset="50%" stopColor="#7c3aed" />
+                <stop offset="100%" stopColor="#a855f7" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(45 50 50)">
+              <rect
+                x="26"
+                y="26"
+                width="48"
+                height="48"
+                rx="12"
+                stroke="url(#logo-outline-grad-shell)"
+                strokeWidth="7.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </g>
+            <path
+              d="M 39 42 L 31 50 L 39 58"
+              stroke="url(#logo-outline-grad-shell)"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M 47 36 L 53 64"
+              stroke="url(#logo-outline-grad-shell)"
+              strokeWidth="7"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 61 42 L 69 50 L 61 58"
+              stroke="url(#logo-outline-grad-shell)"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           <span className="text-lg font-semibold">
             DevWatch <span className="text-indigo-700">AI</span>
           </span>
