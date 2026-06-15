@@ -65,6 +65,46 @@ const aiReviewSchema = new mongoose.Schema(
       max: 100,
       default: 0
     },
+    qualityScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    maintainabilityScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    securityScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    performanceScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    bugCount: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    complexityEstimate: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    analysisType: {
+      type: String,
+      enum: ["file", "project", "architecture", "security", "performance", "maintainability", "complexity"],
+      default: "file",
+      index: true
+    },
     summary: {
       type: String,
       trim: true,

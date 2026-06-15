@@ -19,18 +19,21 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Trash2,
   Users
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bar,
   BarChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis
 } from "recharts";
-import { Button } from "@/components/ui";
+import { Button, IconButton } from "@/components/ui";
 import { apiData } from "@/lib/api";
 import type {
   Activity,
@@ -120,6 +123,8 @@ export function WorkspaceShell({
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<{ projects: Project[]; files: Array<{ id: string; projectId: string; path: string; name: string }> } | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === workspaceId);
   const allNavItems = navGroups.flatMap((group) => group.items);
@@ -145,6 +150,29 @@ export function WorkspaceShell({
       setProjects([]);
     }
   }, [workspaceId]);
+
+  useEffect(() => {
+    const query = search.trim();
+    if (!workspaceId || query.length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        setSearchResults(
+          await apiData(`/api/search?workspaceId=${workspaceId}&q=${encodeURIComponent(query)}`, {
+            token: user.token
+          })
+        );
+      } catch {
+        setSearchResults(null);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search, user.token, workspaceId]);
 
   async function loadWorkspaces() {
     setLoading(true);
@@ -245,6 +273,21 @@ export function WorkspaceShell({
       onOpenProject(project.id, project.projectName);
     } catch (createError) {
       setError(errorMessage(createError));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function deleteProject(project: Project) {
+    if (!window.confirm(`Delete "${project.projectName}" and all of its files? This cannot be undone.`)) return;
+    setRefreshing(true);
+    setError(null);
+    try {
+      await apiData(`/api/projects/${project.id}`, { method: "DELETE", token: user.token });
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      await loadWorkspaceData(workspaceId);
+    } catch (deleteError) {
+      setError(errorMessage(deleteError));
     } finally {
       setRefreshing(false);
     }
@@ -356,14 +399,45 @@ export function WorkspaceShell({
         <header className="shrink-0 border-b border-neutral-200 bg-white px-4 py-4 lg:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-neutral-200 px-3 py-2">
+              <div className="relative flex min-w-0 flex-1 items-center gap-2 rounded-md border border-neutral-200 px-3 py-2">
                 <Search size={16} className="shrink-0 text-neutral-500" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-neutral-400"
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search projects"
+                  placeholder="Search projects, files, and code"
                   value={search}
                 />
+                {search.trim().length >= 2 ? (
+                  <div className="absolute left-0 right-0 top-11 z-30 max-h-80 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-2">
+                    {searching ? (
+                      <p className="px-3 py-2 text-sm text-neutral-500">Searching...</p>
+                    ) : searchResults && (searchResults.projects.length || searchResults.files.length) ? (
+                      <>
+                        {searchResults.projects.map((project) => (
+                          <SearchResult
+                            key={`project-${project.id}`}
+                            label={project.projectName}
+                            meta="Project"
+                            onClick={() => onOpenProject(project.id, project.projectName)}
+                          />
+                        ))}
+                        {searchResults.files.map((file) => (
+                          <SearchResult
+                            key={`file-${file.id}`}
+                            label={file.path}
+                            meta="File"
+                            onClick={() => {
+                              const project = projects.find((item) => item.id === file.projectId);
+                              onOpenProject(file.projectId, project?.projectName);
+                            }}
+                          />
+                        ))}
+                      </>
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-neutral-500">No results found.</p>
+                    )}
+                  </div>
+                ) : null}
               </div>
               {workspaces.length ? (
                 <select
@@ -464,6 +538,8 @@ export function WorkspaceShell({
                 user={user}
                 view={view}
                 workspaceName={workspaceName}
+                onDeleteProject={deleteProject}
+                onWorkspaceChanged={() => loadWorkspaceData(workspaceId)}
                 onOpenProject={onOpenProject}
               />
             )}
@@ -490,6 +566,8 @@ function DashboardViewContent({
   user,
   view,
   workspaceName,
+  onDeleteProject,
+  onWorkspaceChanged,
   onOpenProject
 }: {
   createProject: (event: FormEvent<HTMLFormElement>) => void;
@@ -506,6 +584,8 @@ function DashboardViewContent({
   user: UserSession;
   view: DashboardView;
   workspaceName: string;
+  onDeleteProject: (project: Project) => void;
+  onWorkspaceChanged: () => void;
   onOpenProject: (projectId: string, projectName?: string) => void;
 }) {
   if (view === "overview") {
@@ -530,6 +610,7 @@ function DashboardViewContent({
         selectedWorkspace={selectedWorkspace}
         setProjectDescription={setProjectDescription}
         setProjectName={setProjectName}
+        onDeleteProject={onDeleteProject}
         onOpenProject={onOpenProject}
       />
     );
@@ -540,7 +621,17 @@ function DashboardViewContent({
   if (view === "monitoring") return <MonitoringPage records={dashboard.monitoring} />;
   if (view === "alerts") return <AlertsPage notifications={dashboard.notifications} />;
   if (view === "analytics") return <AnalyticsPage projects={projects} reviews={dashboard.reviews} />;
-  if (view === "team") return <TeamPage members={dashboard.members} user={user} />;
+  if (view === "team") {
+    return (
+      <TeamPage
+        members={dashboard.members}
+        token={user.token}
+        user={user}
+        workspaceId={selectedWorkspace.id}
+        onChanged={onWorkspaceChanged}
+      />
+    );
+  }
   if (view === "integrations") return <IntegrationsPage />;
 
   return (
@@ -611,6 +702,7 @@ function ProjectsPage({
   selectedWorkspace,
   setProjectDescription,
   setProjectName,
+  onDeleteProject,
   onOpenProject
 }: {
   createProject: (event: FormEvent<HTMLFormElement>) => void;
@@ -621,6 +713,7 @@ function ProjectsPage({
   selectedWorkspace: Workspace;
   setProjectDescription: (value: string) => void;
   setProjectName: (value: string) => void;
+  onDeleteProject: (project: Project) => void;
   onOpenProject: (projectId: string, projectName?: string) => void;
 }) {
   return (
@@ -658,6 +751,7 @@ function ProjectsPage({
               <ProjectRow
                 key={project.id}
                 project={project}
+                onDeleteProject={onDeleteProject}
                 onOpenProject={onOpenProject}
               />
             ))}
@@ -714,6 +808,12 @@ function DeploymentsPage({ deployments }: { deployments: Deployment[] }) {
 
 function MonitoringPage({ records }: { records: MonitoringRecord[] }) {
   const latest = records[0];
+  const chartData = [...records].reverse().map((record) => ({
+    name: formatDate(record.createdAt),
+    cpu: record.cpu,
+    ram: record.ram,
+    latency: record.latency
+  }));
 
   return (
     <div className="space-y-6">
@@ -728,6 +828,22 @@ function MonitoringPage({ records }: { records: MonitoringRecord[] }) {
           <Metric label="Latency" value={`${latest.latency}ms`} />
           <Metric label="Uptime" value={`${latest.uptime ?? 0}%`} />
         </div>
+      ) : null}
+      {chartData.length ? (
+        <Panel title="Resource History">
+          <div className="h-[300px]">
+            <ResponsiveContainer height="100%" width="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Line dataKey="cpu" stroke="#4338ca" strokeWidth={2} type="monotone" />
+                <Line dataKey="ram" stroke="#059669" strokeWidth={2} type="monotone" />
+                <Line dataKey="latency" stroke="#e11d48" strokeWidth={2} type="monotone" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
       ) : null}
       <DataPage
         title="Monitoring Records"
@@ -818,27 +934,96 @@ function AnalyticsPage({
   );
 }
 
-function TeamPage({ members, user }: { members: Member[]; user: UserSession }) {
+function TeamPage({
+  members,
+  onChanged,
+  token,
+  user,
+  workspaceId
+}: {
+  members: Member[];
+  onChanged: () => void;
+  token: string;
+  user: UserSession;
+  workspaceId: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"admin" | "developer" | "viewer">("developer");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const currentMember = members.find((member) => {
+    const summary = memberSummary(member);
+    return summary.id === user.id || summary._id === user.id || summary.email === user.email;
+  });
+  const canManage = currentMember?.role === "owner" || currentMember?.role === "admin";
+
+  async function invite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    try {
+      await apiData("/api/invites", { method: "POST", token, body: { workspaceId, email, role } });
+      setEmail("");
+      setMessage("Invitation email sent.");
+      onChanged();
+    } catch (inviteError) {
+      setMessage(errorMessage(inviteError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateMember(member: Member, nextRole?: string) {
+    if (!nextRole && !window.confirm("Remove this member from the workspace?")) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await apiData(`/api/members/${member.id}`, {
+        method: nextRole ? "PATCH" : "DELETE",
+        token,
+        body: nextRole ? { role: nextRole } : undefined
+      });
+      onChanged();
+    } catch (memberError) {
+      setMessage(errorMessage(memberError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <DataPage
-      title="Team"
-      body="Workspace member roles and status come from the Members collection."
-      emptyTitle="No members loaded"
-      emptyBody={`${user.name} is signed in. Workspace member records appear here after they are created.`}
-      items={members}
-      renderItem={(member) => {
-        const summary = memberSummary(member);
-        return (
-          <DataRow
-            key={member.id}
-            title={summary.name || summary.email || member.invitedEmail || "Member"}
-            meta={member.role}
-            detail={member.status}
-            icon={<Users size={17} />}
-          />
-        );
-      }}
-    />
+    <div className="space-y-6">
+      <PageHeader title="Team" body="Invite collaborators and manage workspace access." />
+      {canManage ? (
+        <form className="flex flex-wrap gap-2 rounded-lg border border-neutral-200 bg-white p-4" onSubmit={invite}>
+          <input className="h-10 min-w-[220px] flex-1 rounded-md border border-neutral-200 px-3 text-sm" onChange={(event) => setEmail(event.target.value)} placeholder="teammate@company.com" required type="email" value={email} />
+          <select className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm" onChange={(event) => setRole(event.target.value as typeof role)} value={role}>
+            <option value="admin">Admin</option><option value="developer">Developer</option><option value="viewer">Viewer</option>
+          </select>
+          <Button disabled={busy || !email.trim()} type="submit" variant="primary"><Plus size={16} />Invite</Button>
+        </form>
+      ) : null}
+      {message ? <ErrorBanner message={message} /> : null}
+      <Panel title="Workspace Members">
+        {members.length ? members.map((member) => {
+          const summary = memberSummary(member);
+          return (
+            <div className="flex flex-wrap items-center gap-3 border-b border-neutral-200 py-3 last:border-0" key={member.id}>
+              <Avatar name={summary.name || summary.email || member.role} photoURL={summary.photoURL} />
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{summary.name || summary.email || member.invitedEmail || "Member"}</p><p className="text-xs text-neutral-500">{member.status}</p></div>
+              {member.role === "owner" || !canManage ? <span className="text-sm font-medium capitalize">{member.role}</span> : (
+                <>
+                  <select disabled={busy} className="h-9 rounded-md border border-neutral-200 bg-white px-2 text-sm" onChange={(event) => void updateMember(member, event.target.value)} value={member.role}>
+                    <option value="admin">Admin</option><option value="developer">Developer</option><option value="viewer">Viewer</option>
+                  </select>
+                  <IconButton disabled={busy} label="Remove member" onClick={() => void updateMember(member)}><Trash2 size={16} /></IconButton>
+                </>
+              )}
+            </div>
+          );
+        }) : <EmptyState title="No members loaded" body={`${user.name} is signed in. Invite a teammate to collaborate.`} />}
+      </Panel>
+    </div>
   );
 }
 
@@ -956,9 +1141,11 @@ function RightPanel({
 
 function ProjectRow({
   project,
+  onDeleteProject,
   onOpenProject
 }: {
   project: Project;
+  onDeleteProject?: (project: Project) => void;
   onOpenProject: (projectId: string, projectName?: string) => void;
 }) {
   return (
@@ -984,8 +1171,22 @@ function ProjectRow({
           <Code2 size={16} />
           Open
         </Button>
+        {onDeleteProject ? (
+          <IconButton label="Delete project" onClick={() => onDeleteProject(project)}>
+            <Trash2 size={16} />
+          </IconButton>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function SearchResult({ label, meta, onClick }: { label: string; meta: string; onClick: () => void }) {
+  return (
+    <button className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left hover:bg-neutral-50" onClick={onClick} type="button">
+      <span className="truncate text-sm font-medium text-neutral-900">{label}</span>
+      <span className="ml-3 text-xs text-neutral-500">{meta}</span>
+    </button>
   );
 }
 

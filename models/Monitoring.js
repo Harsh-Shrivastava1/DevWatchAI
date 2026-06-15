@@ -36,6 +36,36 @@ const monitoringSchema = new mongoose.Schema(
       min: 0,
       default: 0
     },
+    activeSessions: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    apiLatency: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    errorCount: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    buildCount: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    aiRequests: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    deploymentStatus: {
+      type: String,
+      trim: true,
+      default: ""
+    },
     status: {
       type: String,
       enum: ["healthy", "warning", "critical"],
@@ -62,7 +92,12 @@ const monitoringSchema = new mongoose.Schema(
           default: Date.now
         }
       }
-    ]
+    ],
+    source: {
+      type: String,
+      enum: ["runtime", "deployment", "api", "manual"],
+      default: "manual"
+    }
   },
   { timestamps: true }
 );

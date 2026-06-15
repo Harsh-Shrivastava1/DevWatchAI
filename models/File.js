@@ -42,6 +42,15 @@ const fileSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    revision: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    sortOrder: {
+      type: Number,
+      default: 0
+    },
     lastEditedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
@@ -51,5 +60,7 @@ const fileSchema = new mongoose.Schema(
 );
 
 fileSchema.index({ projectId: 1, path: 1 }, { unique: true });
+fileSchema.index({ projectId: 1, parentId: 1, sortOrder: 1 });
+fileSchema.index({ projectId: 1, path: "text", content: "text" });
 
 module.exports = mongoose.models.File || mongoose.model("File", fileSchema);

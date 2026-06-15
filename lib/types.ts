@@ -55,6 +55,8 @@ export interface WorkspaceFile extends ApiEntity {
   content: string;
   language: string;
   size?: number;
+  revision: number;
+  sortOrder?: number;
   lastEditedBy?: string;
 }
 
@@ -64,6 +66,7 @@ export interface ChatMessage extends ApiEntity {
   sender?: string | UserSummary;
   message: string;
   room?: string;
+  readBy?: string[];
 }
 
 export interface UserSummary {
@@ -100,6 +103,13 @@ export interface AIReview extends ApiEntity {
   fileId?: string;
   requestedBy?: string;
   score: number;
+  qualityScore?: number;
+  maintainabilityScore?: number;
+  securityScore?: number;
+  performanceScore?: number;
+  bugCount?: number;
+  complexityEstimate?: string;
+  analysisType?: "file" | "project" | "architecture" | "security" | "performance" | "maintainability" | "complexity";
   summary?: string;
   issues: AIReviewIssue[];
   positives?: string[];
@@ -115,6 +125,13 @@ export interface MonitoringRecord extends ApiEntity {
   latency: number;
   uptime?: number;
   traffic?: number;
+  activeSessions?: number;
+  apiLatency?: number;
+  errorCount?: number;
+  buildCount?: number;
+  aiRequests?: number;
+  deploymentStatus?: string;
+  source?: "runtime" | "deployment" | "api" | "manual";
   status?: "healthy" | "warning" | "critical";
   alerts?: Array<{
     type?: string;
@@ -152,6 +169,84 @@ export interface Deployment extends ApiEntity {
   status?: "queued" | "running" | "success" | "failed" | "cancelled";
   url?: string;
   buildId?: string;
+  logs?: string;
+  progress?: number;
+  artifactReady?: boolean;
+  checks?: Array<{
+    name?: string;
+    status?: "pending" | "success" | "failed";
+    message?: string;
+  }>;
+  durationMs?: number;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+export interface FileVersion extends ApiEntity {
+  projectId: string;
+  fileId?: string;
+  path: string;
+  name: string;
+  type: "file" | "folder";
+  language?: string;
+  content: string;
+  revision: number;
+  action:
+    | "create"
+    | "save"
+    | "rename"
+    | "move"
+    | "delete"
+    | "import"
+    | "duplicate"
+    | "restore"
+    | "ai-fix";
+  createdBy?: string;
+}
+
+export interface Invitation extends ApiEntity {
+  workspaceId: string;
+  projectId?: string | null;
+  email: string;
+  role: "admin" | "developer" | "viewer";
+  status: "pending" | "accepted" | "rejected" | "expired" | "cancelled";
+  expiresAt: string;
+}
+
+export interface Execution extends ApiEntity {
+  workspaceId: string;
+  projectId: string;
+  triggeredBy: string;
+  status: "queued" | "running" | "success" | "failed" | "stopped" | "timed-out";
+  runtime?: string;
+  entryFile?: string;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number | null;
+  signal?: string | null;
+  durationMs?: number;
+  startedAt?: string;
+  finishedAt?: string;
+  errorFile?: string;
+  errorLine?: number;
+}
+
+export interface ProjectPresence {
+  socketId: string;
+  userId: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  fileId?: string | null;
+  filePath?: string;
+  cursor?: { lineNumber: number; column: number } | null;
+  editing: boolean;
+  lastActiveAt: string;
+}
+
+export interface ImportResult {
+  created: WorkspaceFile[];
+  rejected: Array<{ path: string; reason: string }>;
 }
 
 export interface DashboardData {

@@ -48,6 +48,27 @@ const deploymentSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    progress: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+    artifactReady: {
+      type: Boolean,
+      default: false
+    },
+    checks: [
+      {
+        name: String,
+        status: {
+          type: String,
+          enum: ["pending", "success", "failed"],
+          default: "pending"
+        },
+        message: String
+      }
+    ],
     startedAt: Date,
     finishedAt: Date,
     durationMs: Number

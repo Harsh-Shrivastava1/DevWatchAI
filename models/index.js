@@ -9,5 +9,8 @@ module.exports = {
   Monitoring: require("./Monitoring"),
   Notification: require("./Notification"),
   Activity: require("./Activity"),
-  Deployment: require("./Deployment")
+  Deployment: require("./Deployment"),
+  Invitation: require("./Invitation"),
+  Version: require("./Version"),
+  Execution: require("./Execution")
 };

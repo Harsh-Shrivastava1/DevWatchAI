@@ -4,6 +4,13 @@ const archiver = require("archiver");
 const { verifyFirebaseIdToken } = require("../config/firebaseAdmin");
 const { requireAuth, signSession } = require("../middleware/auth");
 const {
+  createVersion,
+  emitProject,
+  languageFromPath,
+  normalizePath,
+  parentPath
+} = require("../services/platformUtils");
+const {
   Activity,
   AIReview,
   Chat,
@@ -480,29 +487,46 @@ router.post(
   asyncHandler(async (request, response) => {
     const projectId = requireObjectId(request.body.projectId, "projectId");
     const project = await assertProjectWriteAccess(request, projectId);
-    const path = request.body.path?.trim();
+    const path = normalizePath(request.body.path);
 
-    if (!path) {
+    if (path === "/") {
       response.status(400).json({ success: false, error: "path is required" });
       return;
     }
 
-    const file = await File.findOneAndUpdate(
-      { projectId, path },
-      {
-        $set: {
-          projectId,
-          name: path.split("/").filter(Boolean).pop() || path,
-          path,
-          content: request.body.content || "",
-          language: request.body.language || "plaintext",
-          type: request.body.type || "file",
-          size: Buffer.byteLength(request.body.content || ""),
-          lastEditedBy: request.user._id
-        }
-      },
-      { new: true, upsert: true }
-    );
+    if (await File.exists({ projectId, path })) {
+      response.status(409).json({
+        success: false,
+        error: "A file or folder already exists at this path."
+      });
+      return;
+    }
+
+    const parent =
+      parentPath(path) === "/"
+        ? null
+        : await File.findOne({ projectId, path: parentPath(path), type: "folder" });
+    if (parentPath(path) !== "/" && !parent) {
+      response.status(409).json({
+        success: false,
+        error: "Parent folder does not exist."
+      });
+      return;
+    }
+
+    const file = await File.create({
+      projectId,
+      parentId: parent?._id || null,
+      name: path.split("/").filter(Boolean).pop() || path,
+      path,
+      content: request.body.content || "",
+      language: request.body.language || languageFromPath(path),
+      type: request.body.type || "file",
+      size: Buffer.byteLength(request.body.content || ""),
+      revision: 1,
+      lastEditedBy: request.user._id
+    });
+    await createVersion(file, "create", request.user._id);
 
     await createActivity({
       workspaceId: project.workspaceId,
@@ -522,6 +546,10 @@ router.post(
       success: true,
       data: serialize(file)
     });
+    emitProject(request, projectId, "project:files-changed", {
+      action: "create",
+      file: serialize(file)
+    });
   })
 );
 
@@ -539,7 +567,20 @@ router.delete(
     }
 
     const project = await assertProjectWriteAccess(request, file.projectId);
-    await file.deleteOne();
+    const affected =
+      file.type === "folder"
+        ? await File.find({
+            projectId: file.projectId,
+            $or: [
+              { _id: file._id },
+              { path: { $regex: `^${file.path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/` } }
+            ]
+          })
+        : [file];
+    for (const item of affected) {
+      await createVersion(item, "delete", request.user._id);
+    }
+    await File.deleteMany({ _id: { $in: affected.map((item) => item._id) } });
 
     await createActivity({
       workspaceId: project.workspaceId,
@@ -553,7 +594,13 @@ router.delete(
 
     response.json({
       success: true,
-      data: serialize(file)
+      data: {
+        deleted: affected.map(serialize)
+      }
+    });
+    emitProject(request, project._id, "project:files-changed", {
+      action: "delete",
+      files: affected.map(serialize)
     });
   })
 );
@@ -603,6 +650,7 @@ router.post(
     });
 
     response.status(201).json({ success: true, data: serialize(chat) });
+    emitProject(request, projectId, "chat:message", serialize(chat));
   })
 );
 

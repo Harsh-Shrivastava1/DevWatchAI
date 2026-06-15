@@ -80,7 +80,17 @@ router.post(
       fileId: optionalObjectId(request.body.fileId, "fileId"),
       requestedBy: request.user._id,
       filePath: request.body.filePath,
-      code: request.body.code
+      code: request.body.code,
+      analysisType: [
+        "file",
+        "architecture",
+        "security",
+        "performance",
+        "maintainability",
+        "complexity"
+      ].includes(request.body.analysisType)
+        ? request.body.analysisType
+        : "file"
     });
 
     response.status(200).json({

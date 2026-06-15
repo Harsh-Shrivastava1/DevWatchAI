@@ -2,10 +2,13 @@ require("dotenv").config();
 
 const cors = require("cors");
 const express = require("express");
+const http = require("node:http");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const aiRoutes = require("./routes/aiRoutes");
+const extendedRoutes = require("./routes/extendedRoutes");
 const platformRoutes = require("./routes/platformRoutes");
+const { createSocketServer } = require("./services/socketServer");
 require("./models");
 
 const app = express();
@@ -50,6 +53,7 @@ app.get("/health", (_request, response) => {
 
 app.use("/api/ai", aiRoutes);
 app.use("/api", platformRoutes);
+app.use("/api", extendedRoutes);
 
 app.use((_request, response) => {
   response.status(404).json({
@@ -67,7 +71,11 @@ app.use((error, _request, response, _next) => {
 async function startServer() {
   await connectDB();
 
-  const server = app.listen(PORT, () => {
+  const server = http.createServer(app);
+  const io = createSocketServer(server, allowedOrigins);
+  app.set("io", io);
+
+  server.listen(PORT, () => {
     console.log(`DevWatchAI backend running on port ${PORT}`);
   });
 

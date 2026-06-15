@@ -73,6 +73,18 @@ async function buildDirectUriFromSrv(mongoUri) {
   return `mongodb://${parts.auth}${hosts}${parts.path}?${parts.params.toString()}`;
 }
 
+function buildConfiguredPrimaryUri(mongoUri) {
+  if (!process.env.MONGODB_PRIMARY_HOST) return null;
+  const parsed = new URL(mongoUri);
+  const params = new URLSearchParams(parsed.search);
+  params.set("tls", "true");
+  params.set("directConnection", "true");
+  params.delete("replicaSet");
+  if (!params.has("authSource")) params.set("authSource", "admin");
+  const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "/";
+  return `mongodb://${buildAuth(parsed)}${process.env.MONGODB_PRIMARY_HOST}${path}?${params.toString()}`;
+}
+
 async function isWritablePrimary(uri) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const client = new mongoose.mongo.MongoClient(uri, {
@@ -172,8 +184,25 @@ async function connectDB() {
       mongoUri.startsWith("mongodb+srv://")
     ) {
       let lastPrimaryError;
+      const configuredPrimaryUri = buildConfiguredPrimaryUri(mongoUri);
 
-      for (let attempt = 0; attempt < 4; attempt += 1) {
+      if (configuredPrimaryUri) {
+        try {
+          connection = await mongoose.connect(configuredPrimaryUri, {
+            ...options,
+            tls: true,
+            directConnection: true
+          });
+        } catch (error) {
+          lastPrimaryError = error;
+          await mongoose.disconnect().catch(() => {});
+          console.warn(
+            "Configured MongoDB primary was unavailable; probing Atlas primary records."
+          );
+        }
+      }
+
+      for (let attempt = 0; !connection && attempt < 4; attempt += 1) {
         const primaryUri = await buildWritablePrimaryUriFromSrv(mongoUri);
         if (!primaryUri) {
           lastPrimaryError = new Error("Could not resolve a writable MongoDB primary.");

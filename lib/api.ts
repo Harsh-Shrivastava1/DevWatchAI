@@ -9,6 +9,18 @@ type ApiOptions = Omit<RequestInit, "body" | "headers"> & {
   token?: string;
 };
 
+export class ApiError extends Error {
+  status: number;
+  payload: ApiResponse<unknown> | null;
+
+  constructor(status: number, message: string, payload: ApiResponse<unknown> | null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   { body, headers, token, ...init }: ApiOptions = {}
@@ -33,8 +45,10 @@ export async function apiFetch<T>(
     | null;
 
   if (!response.ok) {
-    throw new Error(
-      data?.error || data?.message || `Request failed with status ${response.status}`
+    throw new ApiError(
+      response.status,
+      data?.error || data?.message || `Request failed with status ${response.status}`,
+      data
     );
   }
 

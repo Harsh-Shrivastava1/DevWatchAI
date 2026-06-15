@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { AIReview, File, Project, Activity } = require("../models");
+const { AIReview, File, Project, Activity, Monitoring } = require("../models");
 const { GROQ_MODEL, createGroqChatCompletion } = require("./groqClient");
 
 function systemPrompt(kind) {
@@ -62,7 +62,8 @@ async function storeReview({
   requestedBy,
   result,
   rawResponse,
-  action = "ai.review.created"
+  action = "ai.review.created",
+  analysisType = "file"
 }) {
   if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
     return null;
@@ -75,6 +76,13 @@ async function storeReview({
       ? requestedBy
       : undefined,
     score: normalizeScore(result.score),
+    qualityScore: normalizeScore(result.qualityScore ?? result.score),
+    maintainabilityScore: normalizeScore(result.maintainabilityScore ?? result.score),
+    securityScore: normalizeScore(result.securityScore ?? result.score),
+    performanceScore: normalizeScore(result.performanceScore ?? result.score),
+    bugCount: Number(result.bugCount ?? result.issues?.filter((issue) => issue.type === "Bug").length ?? 0),
+    complexityEstimate: result.complexityEstimate || "",
+    analysisType,
     summary: result.summary || "",
     issues: normalizeIssues(result.issues),
     model: GROQ_MODEL,
@@ -100,10 +108,24 @@ async function storeReview({
     }
   });
 
+  await Monitoring.create({
+    projectId,
+    aiRequests: 1,
+    status: "healthy",
+    source: "api"
+  });
+
   return review;
 }
 
-async function aiCodeReview({ projectId, fileId, filePath, code, requestedBy }) {
+async function aiCodeReview({
+  projectId,
+  fileId,
+  filePath,
+  code,
+  requestedBy,
+  analysisType = "file"
+}) {
   const source = await resolveCode({ code, fileId });
   const completion = await createGroqChatCompletion({
     messages: [
@@ -116,12 +138,19 @@ async function aiCodeReview({ projectId, fileId, filePath, code, requestedBy }) 
         content: JSON.stringify({
           expected_schema: {
             score: "number 0-100",
+            qualityScore: "number 0-100",
+            maintainabilityScore: "number 0-100",
+            securityScore: "number 0-100",
+            performanceScore: "number 0-100",
+            bugCount: "number",
+            complexityEstimate: "string",
             summary: "string",
             issues:
               "array of {type: Bug|Security|Performance|Clean Code, severity: Low|Medium|High, title, message, filePath, line, column, suggestion}",
             positives: "array of strings",
             nextActions: "array of strings"
           },
+          analysisType,
           filePath,
           code: source
         })
@@ -131,6 +160,16 @@ async function aiCodeReview({ projectId, fileId, filePath, code, requestedBy }) 
 
   const result = {
     score: normalizeScore(completion.json.score),
+    qualityScore: normalizeScore(completion.json.qualityScore ?? completion.json.score),
+    maintainabilityScore: normalizeScore(
+      completion.json.maintainabilityScore ?? completion.json.score
+    ),
+    securityScore: normalizeScore(completion.json.securityScore ?? completion.json.score),
+    performanceScore: normalizeScore(
+      completion.json.performanceScore ?? completion.json.score
+    ),
+    bugCount: Number(completion.json.bugCount || 0),
+    complexityEstimate: completion.json.complexityEstimate || "",
     summary: completion.json.summary || "",
     issues: normalizeIssues(completion.json.issues),
     positives: completion.json.positives || [],
@@ -144,7 +183,8 @@ async function aiCodeReview({ projectId, fileId, filePath, code, requestedBy }) 
     fileId,
     requestedBy,
     result,
-    rawResponse: completion.raw
+    rawResponse: completion.raw,
+    analysisType
   });
 
   return {
@@ -323,6 +363,12 @@ async function aiProjectAnalysis({ projectId, requestedBy }) {
         content: JSON.stringify({
           expected_schema: {
             score: "number 0-100",
+            qualityScore: "number 0-100",
+            maintainabilityScore: "number 0-100",
+            securityScore: "number 0-100",
+            performanceScore: "number 0-100",
+            bugCount: "number",
+            complexityEstimate: "string",
             summary: "string",
             architecture: "object with strengths and risks arrays",
             issues:
@@ -349,6 +395,16 @@ async function aiProjectAnalysis({ projectId, requestedBy }) {
 
   const result = {
     score: normalizeScore(completion.json.score),
+    qualityScore: normalizeScore(completion.json.qualityScore ?? completion.json.score),
+    maintainabilityScore: normalizeScore(
+      completion.json.maintainabilityScore ?? completion.json.score
+    ),
+    securityScore: normalizeScore(completion.json.securityScore ?? completion.json.score),
+    performanceScore: normalizeScore(
+      completion.json.performanceScore ?? completion.json.score
+    ),
+    bugCount: Number(completion.json.bugCount || 0),
+    complexityEstimate: completion.json.complexityEstimate || "",
     summary: completion.json.summary || "",
     architecture: completion.json.architecture || {
       strengths: [],
@@ -366,7 +422,8 @@ async function aiProjectAnalysis({ projectId, requestedBy }) {
     requestedBy,
     result,
     rawResponse: completion.raw,
-    action: "ai.project_analysis.created"
+    action: "ai.project_analysis.created",
+    analysisType: "project"
   });
 
   return {
