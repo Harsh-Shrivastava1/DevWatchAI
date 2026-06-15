@@ -1,16 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
   BarChart3,
   Bot,
+  CheckCircle2,
   Code2,
   Database,
+  FileCode2,
+  FolderTree,
+  KeyRound,
+  LayoutDashboard,
+  Lightbulb,
   MonitorDot,
+  Play,
+  Search,
   ShieldCheck,
   Users,
+  Wand2,
   X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -28,32 +37,32 @@ export function LandingPage({
     icon: LucideIcon;
     description: string;
   }> = [
-    {
-      title: "Cloud IDE",
-      icon: Code2,
-      description: "Create and save files in MongoDB."
-    },
-    {
-      title: "AI Review",
-      icon: Bot,
-      description: "Run Groq reviews and store results."
-    },
-    {
-      title: "Team Chat",
-      icon: Users,
-      description: "Send project messages through the backend."
-    },
-    {
-      title: "Monitoring",
-      icon: MonitorDot,
-      description: "Display real service records."
-    },
-    {
-      title: "Analytics",
-      icon: BarChart3,
-      description: "Chart real project and review data."
-    }
-  ];
+      {
+        title: "Cloud IDE",
+        icon: Code2,
+        description: "Create and save files in MongoDB."
+      },
+      {
+        title: "AI Review",
+        icon: Bot,
+        description: "Run Groq reviews and store results."
+      },
+      {
+        title: "Team Chat",
+        icon: Users,
+        description: "Send project messages through the backend."
+      },
+      {
+        title: "Monitoring",
+        icon: MonitorDot,
+        description: "Display real service records."
+      },
+      {
+        title: "Analytics",
+        icon: BarChart3,
+        description: "Chart real project and review data."
+      }
+    ];
 
   return (
     <main className="min-h-screen bg-[#f7f8fb] text-neutral-950">
@@ -93,9 +102,7 @@ export function LandingPage({
                 DevWatch AI
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-neutral-600">
-                A collaborative browser IDE with Firebase authentication, MongoDB
-                project storage, Groq-powered code review, monitoring, analytics,
-                team chat, and ZIP export.
+                Your intelligent cloud workspace for coding, teamwork, AI reviews, and seamless project management.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <button
@@ -128,20 +135,28 @@ export function LandingPage({
 
       <section className="border-b border-neutral-200 bg-[#f7f8fb]">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
-          <div className="mb-8 flex flex-col gap-2">
-            <p className="text-sm font-semibold text-indigo-700">Product Surface</p>
-            <h2 className="text-3xl font-semibold text-neutral-950">
+          <div className="mb-10 flex flex-col gap-3">
+            <p className="inline-flex w-fit items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-700">
+              Product Surface
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
               The platform opens directly into real work.
             </h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
             {features.map(({ title, icon: Icon, description }) => (
-              <div key={title} className="rounded-lg border border-neutral-200 bg-white p-5">
-                <Icon className="text-indigo-700" size={22} />
-                <h3 className="mt-4 text-base font-semibold text-neutral-950">
+              <div
+                key={title}
+                className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100/50 transition-colors duration-300 group-hover:bg-indigo-600 group-hover:text-white">
+                  <Icon size={22} />
+                </div>
+                <h3 className="relative z-10 mt-5 text-base font-semibold text-neutral-950">
                   {title}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                <p className="relative z-10 mt-2 text-sm leading-6 text-neutral-600">
                   {description}
                 </p>
               </div>
@@ -171,7 +186,15 @@ export function LandingPage({
         </div>
       </section>
 
-      {howToOpen ? <HowToModal onClose={() => setHowToOpen(false)} /> : null}
+      {howToOpen ? (
+        <HowToModal
+          onClose={() => setHowToOpen(false)}
+          onStart={() => {
+            setHowToOpen(false);
+            onExplore();
+          }}
+        />
+      ) : null}
     </main>
   );
 }
@@ -248,7 +271,7 @@ function ProductPreview() {
       {/* Floating Layout for Desktop / Grid for Mobile */}
       <div className="relative z-10 w-full h-full min-h-[480px]">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:block gap-4 w-full h-full min-h-[480px]">
-          
+
           {/* Card 1: AI Code Review (Top-Left) */}
           <div className="md:absolute md:top-[6%] md:left-[2%] md:w-[230px] bg-white rounded-2xl border border-neutral-100 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(99,102,241,0.08)] transition-all duration-300">
             <div className="flex gap-4">
@@ -334,46 +357,388 @@ function ProductPreview() {
   );
 }
 
-function HowToModal({ onClose }: { onClose: () => void }) {
-  const steps = [
-    "Sign in with Firebase email/password or Google.",
-    "Complete onboarding and create a workspace.",
-    "Create a project, then open it in the Cloud IDE.",
-    "Create files, save edits, send team chat messages, and run AI review.",
-    "Use dashboard pages for real activity, reviews, monitoring, deployments, notifications, and analytics.",
-    "Export the project ZIP when you want to move it outside DevWatch AI."
-  ];
+type GuideSection = {
+  id: string;
+  title: string;
+  shortTitle: string;
+  description: string;
+  icon: LucideIcon;
+  steps: Array<{
+    title: string;
+    body: string;
+    tip?: string;
+  }>;
+};
+
+const guideSections: GuideSection[] = [
+  {
+    id: "getting-started",
+    title: "Create your account and enter DevWatch AI",
+    shortTitle: "Getting Started",
+    description: "Your account gives you secure access to every workspace and project you belong to.",
+    icon: KeyRound,
+    steps: [
+      {
+        title: "Choose Log in or Sign up",
+        body: "Use email and password or continue with Google. New users should choose Sign up; returning users should choose Log in."
+      },
+      {
+        title: "Verify and recover your account",
+        body: "Verify your email when requested. If you forget your password, use Forgot password on the login form and follow the reset email."
+      },
+      {
+        title: "Complete onboarding",
+        body: "Enter your profile details and create your first workspace. After onboarding, DevWatch AI opens your workspace dashboard.",
+        tip: "Use the same email address that received a workspace invitation."
+      }
+    ]
+  },
+  {
+    id: "workspace",
+    title: "Understand workspaces, projects, and roles",
+    shortTitle: "Workspace Basics",
+    description: "A workspace contains your team, projects, activity, reviews, deployments, and monitoring data.",
+    icon: LayoutDashboard,
+    steps: [
+      {
+        title: "Create or switch workspaces",
+        body: "Use the workspace selector in the dashboard header to move between teams. Use New → New Workspace to create another workspace."
+      },
+      {
+        title: "Know what each role can do",
+        body: "Owners control the workspace. Admins manage projects and members. Developers can build and collaborate. Viewers can inspect work without changing it."
+      },
+      {
+        title: "Use the dashboard",
+        body: "Overview summarizes activity. Projects opens your code. AI Code Review stores Groq results. Deployments, Monitoring, Alerts, Analytics, and Members show live workspace data."
+      }
+    ]
+  },
+  {
+    id: "project",
+    title: "Create a project and organize its files",
+    shortTitle: "Projects & Files",
+    description: "Projects store their complete folder tree and file contents in MongoDB.",
+    icon: FolderTree,
+    steps: [
+      {
+        title: "Create and open a project",
+        body: "Open Projects, enter a name and description, then choose Create Project. The new project opens directly in the Cloud IDE."
+      },
+      {
+        title: "Create files and folders",
+        body: "Use New File in the toolbar or the file explorer actions. Right-click inside the explorer to create, rename, duplicate, move, or delete entries."
+      },
+      {
+        title: "Import code from your computer",
+        body: "Choose Import Files for one or many files, or use the folder import action in the explorer. DevWatch AI preserves supported folder structures and handles duplicate names safely.",
+        tip: "Supported imports include JavaScript, TypeScript, Python, Java, C/C++, Go, Rust, HTML, CSS, JSON, Markdown, YAML, text, and .env files."
+      }
+    ]
+  },
+  {
+    id: "editor",
+    title: "Write, save, and recover code",
+    shortTitle: "Cloud IDE",
+    description: "The editor combines Monaco editing, persistent storage, version history, and conflict protection.",
+    icon: FileCode2,
+    steps: [
+      {
+        title: "Open and edit files",
+        body: "Select a file in the explorer to open it in a tab. DevWatch AI detects its language and provides syntax highlighting through the Monaco editor."
+      },
+      {
+        title: "Save confidently",
+        body: "Edits auto-save after a short delay. Choose Save for an immediate manual save. The project remembers your files when you reload.",
+        tip: "If two people save the same file at once, the conflict dialog lets you keep your version or use the latest server version."
+      },
+      {
+        title: "Restore an earlier version",
+        body: "Open History in the right panel, inspect saved versions, and restore the version you need. Saves, renames, imports, deletes, and AI fixes are recorded."
+      }
+    ]
+  },
+  {
+    id: "collaboration",
+    title: "Invite teammates and collaborate live",
+    shortTitle: "Collaboration",
+    description: "Work together inside the same project with live presence, synchronized edits, and persistent chat.",
+    icon: Users,
+    steps: [
+      {
+        title: "Invite a teammate",
+        body: "Choose Invite in the IDE or open Members from the dashboard. Enter the teammate’s email and role. They must sign in with that email before accepting the secure invitation."
+      },
+      {
+        title: "See who is working",
+        body: "The IDE header shows online collaborators. Presence details include their current file, cursor location, editing state, and last activity."
+      },
+      {
+        title: "Use project chat",
+        body: "Open Chat in the right panel to send messages, code blocks, file references, and emoji. Messages, typing indicators, online state, history, and read receipts update in real time.",
+        tip: "Live edits and file-tree changes are shared automatically with everyone in the project."
+      }
+    ]
+  },
+  {
+    id: "ai",
+    title: "Review and improve code with Groq AI",
+    shortTitle: "AI Tools",
+    description: "Groq analyzes real project code and stores structured results with your project.",
+    icon: Wand2,
+    steps: [
+      {
+        title: "Run a file review",
+        body: "Open a file and choose AI Review. Review the score, findings, severity, affected lines, and suggested next actions in the AI panel."
+      },
+      {
+        title: "Analyze the whole project",
+        body: "Use project analysis for architecture, security, performance, maintainability, complexity, quality scores, bug counts, and prioritized suggestions."
+      },
+      {
+        title: "Apply an AI fix safely",
+        body: "Ask AI to generate a fix, inspect its explanation and proposed code, then explicitly choose Apply. DevWatch AI records the change in version history.",
+        tip: "AI fixes never apply automatically; you remain in control of every code change."
+      }
+    ]
+  },
+  {
+    id: "run-deploy",
+    title: "Run, troubleshoot, deploy, and monitor",
+    shortTitle: "Run & Deploy",
+    description: "Test your project, inspect exact failures, create deployment artifacts, and follow stored health metrics.",
+    icon: Play,
+    steps: [
+      {
+        title: "Run your project",
+        body: "Choose Run in the IDE. The Console panel streams stdout, stderr, execution status, runtime, and duration. Use Stop or Restart while a process is active."
+      },
+      {
+        title: "Fix runtime errors",
+        body: "When execution fails, inspect the stack trace and affected location. Ask Groq to explain the error and generate a focused fix, then review it before applying."
+      },
+      {
+        title: "Deploy and monitor",
+        body: "Choose Deploy to validate the project, run checks, generate a deploy artifact, and store progress and logs. Monitoring shows CPU, memory, latency, uptime, sessions, errors, builds, deployment status, and AI usage."
+      }
+    ]
+  },
+  {
+    id: "find-export",
+    title: "Find work, export projects, and stay safe",
+    shortTitle: "Search & Export",
+    description: "Use the platform’s search and export tools to move quickly and retain full ownership of your code.",
+    icon: Search,
+    steps: [
+      {
+        title: "Search across your workspace",
+        body: "Use the dashboard search field to find projects, file names, folder names, and matching code content."
+      },
+      {
+        title: "Export your project",
+        body: "Choose Export ZIP in the IDE to download the complete project structure. You can open it locally, upload it to GitHub, or deploy it elsewhere."
+      },
+      {
+        title: "Handle common problems",
+        body: "If data does not load, confirm your connection and retry. If access is denied, ask a workspace owner to check your role. If an invitation fails, sign in with the exact invited email.",
+        tip: "Your code, chat, reviews, versions, monitoring records, and deployment history remain attached to the workspace."
+      }
+    ]
+  }
+];
+
+function HowToModal({
+  onClose,
+  onStart
+}: {
+  onClose: () => void;
+  onStart: () => void;
+}) {
+  const [activeId, setActiveId] = useState(guideSections[0].id);
+  const activeSection =
+    guideSections.find((section) => section.id === activeId) || guideSections[0];
+  const activeIndex = guideSections.findIndex((section) => section.id === activeSection.id);
+  const ActiveIcon = activeSection.icon;
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowRight" && activeIndex < guideSections.length - 1) {
+        setActiveId(guideSections[activeIndex + 1].id);
+      }
+      if (event.key === "ArrowLeft" && activeIndex > 0) {
+        setActiveId(guideSections[activeIndex - 1].id);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeIndex, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/60 p-4">
-      <div className="w-full max-w-2xl rounded-lg border border-neutral-200 bg-white">
-        <div className="flex items-start justify-between gap-4 border-b border-neutral-200 p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/65 p-3 sm:p-5"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        aria-labelledby="devwatch-guide-title"
+        aria-modal="true"
+        className="flex max-h-[calc(100vh-24px)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white sm:max-h-[calc(100vh-40px)]"
+        role="dialog"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6 sm:py-5">
           <div>
-            <p className="text-sm font-semibold text-indigo-700">Guide</p>
-            <h2 className="mt-2 text-2xl font-semibold text-neutral-950">
-              How To Use DevWatch AI
+            <p className="text-sm font-semibold text-indigo-700">DevWatch AI User Guide</p>
+            <h2 className="mt-1 text-xl font-semibold text-neutral-950 sm:text-2xl" id="devwatch-guide-title">
+              Build, collaborate, review, and deploy with confidence
             </h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-neutral-600">
+              Follow this guide from account creation to exporting a finished project.
+            </p>
           </div>
           <button
             aria-label="Close guide"
-            className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
             onClick={onClose}
             type="button"
           >
             <X size={18} />
           </button>
         </div>
-        <div className="p-6">
-          <ol className="space-y-3">
-            {steps.map((step, index) => (
-              <li className="flex gap-3 text-sm leading-6 text-neutral-700" key={step}>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-sm font-semibold text-indigo-800">
-                  {index + 1}
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[245px_minmax(0,1fr)]">
+          <aside className="border-b border-neutral-200 bg-neutral-50 p-3 md:overflow-y-auto md:border-b-0 md:border-r">
+            <div className="flex gap-2 overflow-x-auto md:block md:space-y-1">
+              {guideSections.map((section, index) => {
+                const Icon = section.icon;
+                const active = section.id === activeSection.id;
+                return (
+                  <button
+                    aria-current={active ? "step" : undefined}
+                    className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium md:w-full md:min-w-0 ${active
+                        ? "bg-indigo-700 text-white"
+                        : "text-neutral-700 hover:bg-white hover:text-neutral-950"
+                      }`}
+                    key={section.id}
+                    onClick={() => setActiveId(section.id)}
+                    type="button"
+                  >
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${active ? "bg-white/15" : "bg-white"}`}>
+                      <Icon size={15} />
+                    </span>
+                    <span className="truncate">
+                      <span className={`mr-1.5 text-xs ${active ? "text-indigo-100" : "text-neutral-400"}`}>
+                        {index + 1}.
+                      </span>
+                      {section.shortTitle}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          <section className="min-h-0 overflow-y-auto">
+            <div className="mx-auto max-w-3xl p-5 sm:p-8">
+              <div className="flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">
+                  <ActiveIcon size={21} />
                 </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-indigo-700">
+                    Step {activeIndex + 1} of {guideSections.length}
+                  </p>
+                  <h3 className="mt-1 text-xl font-semibold text-neutral-950">
+                    {activeSection.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-neutral-600">
+                    {activeSection.description}
+                  </p>
+                </div>
+              </div>
+
+              <ol className="mt-7 space-y-3">
+                {activeSection.steps.map((step, index) => (
+                  <li className="rounded-lg border border-neutral-200 p-4 sm:p-5" key={step.title}>
+                    <div className="flex gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-xs font-semibold text-neutral-700">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-neutral-950">{step.title}</h4>
+                        <p className="mt-1.5 text-sm leading-6 text-neutral-600">{step.body}</p>
+                        {step.tip ? (
+                          <div className="mt-3 flex gap-2 rounded-md bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-900">
+                            <Lightbulb className="mt-0.5 shrink-0" size={15} />
+                            <span>{step.tip}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex gap-3">
+                  <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-700" size={18} />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-950">
+                      {activeIndex === guideSections.length - 1
+                        ? "You are ready to build in DevWatch AI."
+                        : "Complete these actions, then continue to the next section."}
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-emerald-800">
+                      Everything you create is saved to your workspace and restored when you return.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-3 sm:px-6">
+          <p className="text-xs text-neutral-500">
+            Need this later? Open <span className="font-medium text-neutral-700">How To Use</span> from the login page.
+          </p>
+          <div className="flex items-center gap-2">
+            {activeIndex > 0 ? (
+              <button
+                className="h-9 rounded-md border border-neutral-200 px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                onClick={() => setActiveId(guideSections[activeIndex - 1].id)}
+                type="button"
+              >
+                Previous
+              </button>
+            ) : null}
+            {activeIndex < guideSections.length - 1 ? (
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-indigo-700 px-3 text-sm font-semibold text-white hover:bg-indigo-800"
+                onClick={() => setActiveId(guideSections[activeIndex + 1].id)}
+                type="button"
+              >
+                Next
+                <ArrowRight size={14} />
+              </button>
+            ) : (
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-indigo-700 px-3 text-sm font-semibold text-white hover:bg-indigo-800"
+                onClick={onStart}
+                type="button"
+              >
+                Create Account
+                <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

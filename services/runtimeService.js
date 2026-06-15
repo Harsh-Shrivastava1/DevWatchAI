@@ -30,7 +30,7 @@ async function startExecution({ project, userId, files, io }) {
     execution.stderr = error.stack || error.message;
     execution.finishedAt = new Date();
     await execution.save();
-    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => { });
     emit(io, project._id, "execution:updated", serializeExecution(execution));
     throw error;
   }
@@ -127,7 +127,7 @@ async function finalizeExecution({ execution, project, io, startedAt, tempDirect
   execution.durationMs = Date.now() - startedAt;
   await execution.save();
   activeExecutions.delete(String(execution._id));
-  await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => {});
+  await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => { });
 
   await Promise.all([
     Activity.create({
@@ -157,12 +157,12 @@ async function finalizeExecution({ execution, project, io, startedAt, tempDirect
         execution.status === "success"
           ? []
           : [
-              {
-                type: "runtime",
-                message: execution.stderr.slice(0, 1000) || "Execution failed.",
-                severity: "high"
-              }
-            ]
+            {
+              type: "runtime",
+              message: execution.stderr.slice(0, 1000) || "Execution failed.",
+              severity: "high"
+            }
+          ]
     })
   ]);
 

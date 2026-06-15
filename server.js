@@ -75,7 +75,7 @@ async function startServer() {
   const io = createSocketServer(server, allowedOrigins);
   app.set("io", io);
 
-  server.listen(PORT, () => {
+  server.listen(PORT, "0.0.0.0", () => {
     console.log(`DevWatchAI backend running on port ${PORT}`);
   });
 

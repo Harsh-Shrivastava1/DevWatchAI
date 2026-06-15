@@ -377,21 +377,21 @@ export function CloudIDE({
       const created =
         type === "folder"
           ? await apiData<WorkspaceFile>("/api/folders", {
-              method: "POST",
-              token,
-              body: { projectId, path }
-            })
+            method: "POST",
+            token,
+            body: { projectId, path }
+          })
           : await apiData<WorkspaceFile>("/api/files", {
-              method: "POST",
-              token,
-              body: {
-                projectId,
-                path,
-                content: "",
-                language: languageFromPath(path),
-                type: "file"
-              }
-            });
+            method: "POST",
+            token,
+            body: {
+              projectId,
+              path,
+              content: "",
+              language: languageFromPath(path),
+              type: "file"
+            }
+          });
       setFiles((current) => upsertById(current, created));
       setDrafts((current) => ({ ...current, [created.id]: created.content || "" }));
       setExpandedPaths((current) => new Set([...current, parentPath(path)]));
@@ -586,10 +586,9 @@ export function CloudIDE({
       setImportProgress(100);
       await Promise.all([refreshFiles(), refreshVersions()]);
       setNotice(
-        `Imported ${result.created.length} file${result.created.length === 1 ? "" : "s"}${
-          result.rejected.length + locallyRejected.length
-            ? `; ${result.rejected.length + locallyRejected.length} rejected`
-            : ""
+        `Imported ${result.created.length} file${result.created.length === 1 ? "" : "s"}${result.rejected.length + locallyRejected.length
+          ? `; ${result.rejected.length + locallyRejected.length} rejected`
+          : ""
         }.`
       );
     } catch (importError) {
@@ -1297,10 +1296,8 @@ function AIReviewPanel({
 
       {assistantResult ? (
         <section className="rounded-lg border border-neutral-200 p-4">
-          <p className="text-sm font-semibold text-neutral-950">{assistantResult.kind}</p>
-          <pre className="mt-3 max-h-80 overflow-auto rounded-md bg-neutral-950 p-3 text-xs leading-5 text-neutral-100">
-            {JSON.stringify(assistantResult.data, null, 2)}
-          </pre>
+          <p className="mb-4 text-sm font-semibold text-neutral-950">{assistantResult.kind}</p>
+          <ChatFormatter data={assistantResult.data} onFollowUp={setAssistantQuestion} />
         </section>
       ) : (
         <EmptyState title="No AI result yet">
@@ -1663,6 +1660,78 @@ function PresenceStrip({ presence }: { presence: ProjectPresence[] }) {
       ))}
       <Users className="ml-1 text-neutral-500" size={15} />
     </div>
+  );
+}
+
+function Typewriter({ text, speed = 10 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const timer = setInterval(() => {
+      setDisplayed(text.substring(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(timer);
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed]);
+  return <span>{displayed}</span>;
+}
+
+function ChatFormatter({ data, onFollowUp }: { data: any; onFollowUp: (q: string) => void }) {
+  if (typeof data !== "object" || !data) {
+    return <Typewriter text={String(data)} speed={15} />;
+  }
+
+  if (data.answer) {
+    return (
+      <div className="space-y-4 text-sm text-neutral-800">
+        <div className="leading-6">
+          <Typewriter text={data.answer} speed={10} />
+        </div>
+        {data.bullets && data.bullets.length > 0 && (
+          <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+            {data.bullets.map((bullet: string, i: number) => (
+              <li key={i}>
+                <Typewriter text={bullet} speed={10} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {data.referencedFiles && data.referencedFiles.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {data.referencedFiles.map((file: string, i: number) => (
+              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200" key={i}>
+                <Typewriter text={file} speed={20} />
+              </span>
+            ))}
+          </div>
+        )}
+        {data.followUps && data.followUps.length > 0 && (
+          <div className="mt-4 border-t border-neutral-100 pt-4">
+            <p className="mb-2 text-xs font-semibold text-neutral-500">Suggested Follow-ups</p>
+            <div className="flex flex-col gap-2">
+              {data.followUps.map((q: string, i: number) => (
+                <button
+                  className="rounded-md border border-indigo-100/50 bg-indigo-50/50 px-3 py-2 text-left text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 hover:text-indigo-800"
+                  key={i}
+                  onClick={() => onFollowUp(q)}
+                  type="button"
+                >
+                  <Typewriter text={q} speed={15} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <pre className="max-h-80 overflow-auto rounded-md bg-neutral-950 p-3 text-xs leading-5 text-neutral-100">
+      <Typewriter text={JSON.stringify(data, null, 2)} speed={5} />
+    </pre>
   );
 }
 
