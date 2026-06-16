@@ -130,8 +130,25 @@ async function createActivity({ workspaceId, projectId, actorId, action, targetT
   });
 }
 
-async function resolveFirebaseUser(body) {
-  const decoded = await verifyFirebaseIdToken(body.idToken).catch(() => null);
+async function resolveFirebaseUser(request) {
+  const authHeader = request.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  console.log("Authorization header exists:", !!authHeader);
+  console.log("Bearer token extracted:", !!token);
+
+  let decoded = null;
+  if (token) {
+    try {
+      decoded = await verifyFirebaseIdToken(token);
+      console.log("verifyIdToken succeeded");
+    } catch (error) {
+      console.log("verifyIdToken failed:", error.message);
+    }
+  }
+
+  const body = request.body || {};
+
   if (decoded) {
     return {
       firebaseUid: decoded.uid,
@@ -167,8 +184,8 @@ async function resolveFirebaseUser(body) {
   };
 }
 
-async function upsertUser(body) {
-  const firebaseUser = await resolveFirebaseUser(body);
+async function upsertUser(request) {
+  const firebaseUser = await resolveFirebaseUser(request);
   const user = await User.findOneAndUpdate(
     {
       $or: [
@@ -194,7 +211,7 @@ async function upsertUser(body) {
 router.post(
   "/auth/login",
   asyncHandler(async (request, response) => {
-    const user = await upsertUser(request.body);
+    const user = await upsertUser(request);
 
     response.json({
       success: true,
@@ -208,7 +225,7 @@ router.post(
 router.post(
   "/auth/signup",
   asyncHandler(async (request, response) => {
-    const user = await upsertUser(request.body);
+    const user = await upsertUser(request);
 
     response.status(201).json({
       success: true,
