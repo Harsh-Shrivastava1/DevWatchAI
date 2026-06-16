@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/lib/types";
+import { auth } from "@/lib/firebase";
 
 export const API_BASE =
   (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:4000").replace(/\/$/, "");
@@ -31,8 +32,17 @@ export async function apiFetch<T>(
     requestHeaders.set("Content-Type", "application/json");
   }
 
-  if (token) {
-    requestHeaders.set("Authorization", `Bearer ${token}`);
+  let finalToken = token;
+  if (!finalToken && auth?.currentUser) {
+    try {
+      finalToken = await auth.currentUser.getIdToken();
+    } catch (error) {
+      console.warn("Failed to get Firebase ID token:", error);
+    }
+  }
+
+  if (finalToken) {
+    requestHeaders.set("Authorization", `Bearer ${finalToken}`);
   }
 
   const response = await fetch(`${API_BASE}${path}`, {

@@ -65,6 +65,7 @@ export function AuthModal({
     const idToken = await firebaseUser.getIdToken();
     const response = await apiFetch<ApiResponse<never>>(endpoint, {
       method: "POST",
+      token: idToken,
       body: {
         idToken,
         uid: firebaseUser.uid,
