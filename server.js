@@ -69,8 +69,6 @@ app.use((error, _request, response, _next) => {
 });
 
 async function startServer() {
-  await connectDB();
-
   const server = http.createServer(app);
   const io = createSocketServer(server, allowedOrigins);
   app.set("io", io);
@@ -79,10 +77,23 @@ async function startServer() {
     console.log(`DevWatchAI backend running on port ${PORT}`);
   });
 
+  const connectWithRetry = async () => {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error("Retrying MongoDB connection in 5 seconds...");
+      setTimeout(connectWithRetry, 5000);
+    }
+  };
+
+  connectWithRetry();
+
   const shutdown = async (signal) => {
     console.log(`${signal} received. Closing backend server.`);
     server.close(async () => {
-      await mongoose.connection.close();
+      if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.close();
+      }
       process.exit(0);
     });
   };
