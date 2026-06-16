@@ -679,3 +679,6 @@ DevWatch AI aims to become an all-in-one developer workspace where teams can:
 without switching between multiple tools.
 
 One Platform. One Workspace. Complete Development Lifecycle.
+
+## Intellectual Property Notice
+DevWatchAI is an original project developed for educational, research, and portfolio purposes. Please do not copy, redistribute, or reuse the source code, design, or architecture without prior permission. Feel free to explore the project for learning and inspiration, but any unauthorized reproduction or commercial use is strictly prohibited. If you'd like to build upon this work or collaborate, please reach out first.
