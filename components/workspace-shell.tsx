@@ -67,35 +67,35 @@ const navGroups: Array<{
   label: string;
   items: Array<{ label: string; view: DashboardView; icon: LucideIcon }>;
 }> = [
-  {
-    label: "Workspace",
-    items: [
-      { label: "Overview", view: "overview", icon: LayoutDashboard },
-      { label: "Projects", view: "projects", icon: Braces },
-      { label: "AI Code Review", view: "reviews", icon: Bot },
-      { label: "Deployments", view: "deployments", icon: Rocket }
-    ]
-  },
-  {
-    label: "Insights",
-    items: [
-      { label: "Monitoring", view: "monitoring", icon: Cpu },
-      { label: "Alerts", view: "alerts", icon: AlertTriangle },
-      { label: "Analytics", view: "analytics", icon: BarChart3 }
-    ]
-  },
-  {
-    label: "Team",
-    items: [
-      { label: "Members", view: "team", icon: Users },
-      { label: "Integrations", view: "integrations", icon: Database }
-    ]
-  },
-  {
-    label: "System",
-    items: [{ label: "Settings", view: "settings", icon: Settings }]
-  }
-];
+    {
+      label: "Workspace",
+      items: [
+        { label: "Overview", view: "overview", icon: LayoutDashboard },
+        { label: "Projects", view: "projects", icon: Braces },
+        { label: "AI Code Review", view: "reviews", icon: Bot },
+        { label: "Deployments", view: "deployments", icon: Rocket }
+      ]
+    },
+    {
+      label: "Insights",
+      items: [
+        { label: "Monitoring", view: "monitoring", icon: Cpu },
+        { label: "Alerts", view: "alerts", icon: AlertTriangle },
+        { label: "Analytics", view: "analytics", icon: BarChart3 }
+      ]
+    },
+    {
+      label: "Team",
+      items: [
+        { label: "Members", view: "team", icon: Users },
+        { label: "Integrations", view: "integrations", icon: Database }
+      ]
+    },
+    {
+      label: "System",
+      items: [{ label: "Settings", view: "settings", icon: Settings }]
+    }
+  ];
 
 export function WorkspaceShell({
   view,
@@ -442,7 +442,13 @@ export function WorkspaceShell({
               {workspaces.length ? (
                 <select
                   className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm font-medium outline-none"
-                  onChange={(event) => setWorkspaceId(event.target.value)}
+                  onChange={(event) => {
+                    if (event.target.value === "new_workspace") {
+                      onViewChange("settings");
+                    } else {
+                      setWorkspaceId(event.target.value);
+                    }
+                  }}
                   value={workspaceId}
                 >
                   {workspaces.map((workspace) => (
@@ -450,6 +456,7 @@ export function WorkspaceShell({
                       {workspace.workspaceName}
                     </option>
                   ))}
+                  <option value="new_workspace">+ Add Workspace</option>
                 </select>
               ) : null}
             </div>

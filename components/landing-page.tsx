@@ -32,6 +32,9 @@ export function LandingPage({
   onExplore: () => void;
 }) {
   const [howToOpen, setHowToOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const features: Array<{
     title: string;
     icon: LucideIcon;
@@ -102,29 +105,33 @@ export function LandingPage({
                 DevWatch AI
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-neutral-600">
-                Your intelligent cloud workspace for coding, teamwork, AI reviews, and seamless project management.
+                Build smarter with an AI-powered collaborative workspace for coding, code reviews, real-time teamwork, monitoring, and deployment all in one place.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <button
-                  className="inline-flex h-11 items-center gap-2 rounded-md bg-indigo-700 px-5 text-sm font-semibold text-white hover:bg-indigo-800"
+                  className="inline-flex h-11 items-center gap-2 rounded-md bg-indigo-700 px-5 text-sm font-semibold text-white hover:bg-indigo-800 transition-colors"
                   onClick={onExplore}
                   type="button"
                 >
                   Start Building
                   <ArrowRight size={16} />
                 </button>
-                <button
-                  className="inline-flex h-11 items-center gap-2 rounded-md border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-800 hover:bg-neutral-50"
-                  onClick={() => setHowToOpen(true)}
-                  type="button"
-                >
-                  How To Use
-                </button>
-              </div>
-              <div className="mt-8 grid max-w-2xl gap-3 sm:grid-cols-3">
-                <TrustItem icon={<ShieldCheck size={17} />} text="Firebase Auth" />
-                <TrustItem icon={<Database size={17} />} text="MongoDB Atlas" />
-                <TrustItem icon={<Bot size={17} />} text="Groq Llama 3.3" />
+                <div className="flex items-center gap-3">
+                  <button
+                    className="relative inline-flex h-11 items-center gap-2 rounded-md border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 transition-all hover:border-indigo-300 hover:shadow-sm"
+                    onClick={() => setHowToOpen(true)}
+                    type="button"
+                  >
+                    How To Use
+                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-indigo-500"></span>
+                    </span>
+                  </button>
+                  <span className="hidden sm:inline-flex items-center text-sm font-medium text-indigo-600 animate-pulse">
+                    ← Start here!
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -195,6 +202,29 @@ export function LandingPage({
           }}
         />
       ) : null}
+
+      {privacyOpen ? (
+        <PrivacyModal onClose={() => setPrivacyOpen(false)} />
+      ) : null}
+
+      {termsOpen ? (
+        <TermsModal onClose={() => setTermsOpen(false)} />
+      ) : null}
+
+      {contactOpen ? (
+        <ContactModal onClose={() => setContactOpen(false)} />
+      ) : null}
+
+      <footer className="border-t border-neutral-200 bg-white py-8 text-center text-sm text-neutral-500">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-4 px-5 sm:flex-row sm:justify-between sm:px-8">
+          <p>© {new Date().getFullYear()} DevWatch AI. Developed by Harsh Shrivastava.</p>
+          <div className="flex items-center gap-6">
+            <button onClick={() => setPrivacyOpen(true)} className="hover:text-neutral-900 transition-colors">Privacy Policy</button>
+            <button onClick={() => setTermsOpen(true)} className="hover:text-neutral-900 transition-colors">Terms of Service</button>
+            <button onClick={() => setContactOpen(true)} className="hover:text-neutral-900 transition-colors">Contact</button>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
@@ -310,13 +340,8 @@ function ProductPreview() {
             <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-lg border border-neutral-150/40">
               {/* Inner ring */}
               <div className="w-20 h-20 rounded-full bg-indigo-50/30 flex items-center justify-center">
-                {/* Central Diamond Logo */}
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center transform rotate-45 shadow-md animate-[spin_10s_linear_infinite_paused] hover:animate-[spin_10s_linear_infinite]">
-                  {/* Reverse rotation for contents */}
-                  <div className="-rotate-45 text-white flex items-center justify-center">
-                    <Code2 size={20} className="stroke-[2.5]" />
-                  </div>
-                </div>
+                {/* Central Logo */}
+                <LogoMark className="w-16 h-16 animate-[spin_10s_linear_infinite_paused] hover:animate-[spin_10s_linear_infinite]" />
               </div>
             </div>
           </div>
@@ -623,8 +648,8 @@ function HowToModal({
                   <button
                     aria-current={active ? "step" : undefined}
                     className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium md:w-full md:min-w-0 ${active
-                        ? "bg-indigo-700 text-white"
-                        : "text-neutral-700 hover:bg-white hover:text-neutral-950"
+                      ? "bg-indigo-700 text-white"
+                      : "text-neutral-700 hover:bg-white hover:text-neutral-950"
                       }`}
                     key={section.id}
                     onClick={() => setActiveId(section.id)}
@@ -754,10 +779,10 @@ function TrustItem({ icon, text }: { icon: ReactNode; text: string }) {
   );
 }
 
-function LogoMark() {
+function LogoMark({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg
-      className="w-10 h-10"
+      className={className}
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -804,5 +829,216 @@ function LogoMark() {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function PrivacyModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/65 p-3 sm:p-5"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[calc(100vh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white sm:max-h-[calc(100vh-40px)]"
+        role="dialog"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6 sm:py-5">
+          <div>
+            <h2 className="text-xl font-semibold text-neutral-950 sm:text-2xl">Privacy Policy</h2>
+          </div>
+          <button
+            aria-label="Close modal"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="min-h-0 overflow-y-auto p-5 sm:p-8 text-sm leading-6 text-neutral-600">
+          <p className="mb-4">
+            Welcome to DevWatch AI. We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">1. Information We Collect</h3>
+          <p className="mb-4">
+            We collect personal information that you voluntarily provide to us when you register on the Services, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Services, or otherwise when you contact us.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">2. How We Use Your Information</h3>
+          <p className="mb-4">
+            We use personal information collected via our Services for a variety of business purposes described below. We process your personal information for these purposes in reliance on our legitimate business interests, in order to enter into or perform a contract with you, with your consent, and/or for compliance with our legal obligations.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">3. Will Your Information Be Shared With Anyone?</h3>
+          <p className="mb-4">
+            We only share information with your consent, to comply with laws, to provide you with services, to protect your rights, or to fulfill business obligations.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-neutral-200 bg-neutral-50 px-5 py-3 sm:px-6">
+          <button
+            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+            onClick={onClose}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TermsModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/65 p-3 sm:p-5"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[calc(100vh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white sm:max-h-[calc(100vh-40px)]"
+        role="dialog"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6 sm:py-5">
+          <div>
+            <h2 className="text-xl font-semibold text-neutral-950 sm:text-2xl">Terms of Service</h2>
+          </div>
+          <button
+            aria-label="Close modal"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="min-h-0 overflow-y-auto p-5 sm:p-8 text-sm leading-6 text-neutral-600">
+
+          <p className="mb-4">
+            These Terms of Service constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and DevWatch AI ("Company", "we", "us", or "our"), concerning your access to and use of our platform.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">1. Agreement to Terms</h3>
+          <p className="mb-4">
+            By accessing the Services, you agree that you have read, understood, and agreed to be bound by all of these Terms of Service. IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF SERVICE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">2. User Representations</h3>
+          <p className="mb-4">
+            By using the Services, you represent and warrant that: (1) all registration information you submit will be true, accurate, current, and complete; (2) you will maintain the accuracy of such information and promptly update such registration information as necessary.
+          </p>
+          <h3 className="mt-6 mb-2 text-base font-semibold text-neutral-950">3. Prohibited Activities</h3>
+          <p className="mb-4">
+            You may not access or use the Services for any purpose other than that for which we make the Services available. The Services may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-neutral-200 bg-neutral-50 px-5 py-3 sm:px-6">
+          <button
+            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+            onClick={onClose}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/65 p-3 sm:p-5"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[calc(100vh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white sm:max-h-[calc(100vh-40px)]"
+        role="dialog"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6 sm:py-5">
+          <div>
+            <h2 className="text-xl font-semibold text-neutral-950 sm:text-2xl">Contact Us</h2>
+          </div>
+          <button
+            aria-label="Close modal"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="min-h-0 overflow-y-auto p-5 sm:p-8 text-sm leading-6 text-neutral-600">
+          <p className="mb-4">
+            We would love to hear from you! Whether you have a question about features or anything else, our team is ready to answer all your questions.
+          </p>
+          <div className="mt-8 rounded-lg border border-indigo-100 bg-indigo-50/50 p-6">
+            <h3 className="mb-2 text-base font-semibold text-neutral-950">Email Support</h3>
+            <p className="mb-4">
+              For any inquiries, technical support, or feedback, please reach out directly via email. We aim to respond to all inquiries within 24-48 hours.
+            </p>
+            <a
+              href="mailto:hshrivastava23032007@gmail.com"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-indigo-700 px-5 text-sm font-semibold text-white hover:bg-indigo-800 transition-colors"
+            >
+              hshrivastava23032007@gmail.com
+            </a>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-neutral-200 bg-neutral-50 px-5 py-3 sm:px-6">
+          <button
+            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+            onClick={onClose}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

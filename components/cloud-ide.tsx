@@ -138,6 +138,11 @@ export function CloudIDE({
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
   const [review, setReview] = useState<AIReview | null>(null);
   const [pendingFix, setPendingFix] = useState<AutoFixPreview | null>(null);
+  const [promptData, setPromptData] = useState<{
+    title: string;
+    defaultValue: string;
+    onSubmit: (value: string) => void;
+  } | null>(null);
   const [conflict, setConflict] = useState<WorkspaceFile | null>(null);
   const [consoleOutput, setConsoleOutput] = useState("");
   const [status, setStatus] = useState("Loading project");
@@ -359,15 +364,27 @@ export function CloudIDE({
   }
 
   function createFile(folderPath = "/") {
-    const name = window.prompt("File name", "index.ts");
-    if (!name?.trim()) return;
-    void createEntry(joinPath(folderPath, name.trim()), "file");
+    setPromptData({
+      title: "File name",
+      defaultValue: "index.ts",
+      onSubmit: (name) => {
+        setPromptData(null);
+        if (!name.trim()) return;
+        void createEntry(joinPath(folderPath, name.trim()), "file");
+      }
+    });
   }
 
   function createFolder(folderPath = "/") {
-    const name = window.prompt("Folder name", "src");
-    if (!name?.trim()) return;
-    void createEntry(joinPath(folderPath, name.trim()), "folder");
+    setPromptData({
+      title: "Folder name",
+      defaultValue: "src",
+      onSubmit: (name) => {
+        setPromptData(null);
+        if (!name.trim()) return;
+        void createEntry(joinPath(folderPath, name.trim()), "folder");
+      }
+    });
   }
 
   async function createEntry(path: string, type: "file" | "folder") {
@@ -471,9 +488,15 @@ export function CloudIDE({
   }
 
   async function renameEntry(file: WorkspaceFile) {
-    const nextPath = window.prompt("New path", file.path);
-    if (!nextPath?.trim() || normalizePath(nextPath) === file.path) return;
-    await updatePath(file, normalizePath(nextPath));
+    setPromptData({
+      title: "New path",
+      defaultValue: file.path,
+      onSubmit: async (nextPath) => {
+        setPromptData(null);
+        if (!nextPath.trim() || normalizePath(nextPath) === file.path) return;
+        await updatePath(file, normalizePath(nextPath));
+      }
+    });
   }
 
   async function moveEntry(file: WorkspaceFile, destinationFolder: string) {
@@ -1159,6 +1182,14 @@ export function CloudIDE({
           }}
         />
       ) : null}
+      {promptData && (
+        <PromptModal
+          title={promptData.title}
+          defaultValue={promptData.defaultValue}
+          onClose={() => setPromptData(null)}
+          onSubmit={promptData.onSubmit}
+        />
+      )}
     </main>
   );
 }
@@ -1728,6 +1759,36 @@ function ChatFormatter({ data, onFollowUp }: { data: any; onFollowUp: (q: string
     );
   }
 
+  if (data.summary) {
+    return (
+      <div className="space-y-4 text-sm text-neutral-800">
+        <div className="leading-6">
+          <Typewriter text={data.summary} speed={10} />
+        </div>
+        {data.issues && data.issues.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-neutral-500">Issues</p>
+            {data.issues.map((issue: any, i: number) => (
+              <div className="rounded-md border border-amber-100 bg-amber-50/50 p-3" key={i}>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 uppercase tracking-wider">
+                    {issue.severity || "Warning"}
+                  </span>
+                  <p className="font-semibold text-neutral-900 text-xs">
+                    <Typewriter text={issue.title || issue.type || "Issue"} speed={10} />
+                  </p>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-neutral-700">
+                  <Typewriter text={issue.message || issue.suggestion || ""} speed={10} />
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <pre className="max-h-80 overflow-auto rounded-md bg-neutral-950 p-3 text-xs leading-5 text-neutral-100">
       <Typewriter text={JSON.stringify(data, null, 2)} speed={5} />
@@ -1933,4 +1994,64 @@ function isNetworkError(error: unknown) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Request failed.";
+}
+
+function PromptModal({
+  title,
+  defaultValue,
+  onClose,
+  onSubmit
+}: {
+  title: string;
+  defaultValue: string;
+  onClose: () => void;
+  onSubmit: (value: string) => void;
+}) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/40 p-4 backdrop-blur-sm">
+      <form
+        className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white shadow-xl overflow-hidden"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(value);
+        }}
+      >
+        <div className="p-5">
+          <h2 className="text-lg font-semibold text-neutral-950">{title}</h2>
+          <div className="mt-4">
+            <input
+              ref={inputRef}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 bg-neutral-50 px-5 py-3 border-t border-neutral-100">
+          <button
+            type="button"
+            className="rounded-md px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-200 transition-colors"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+            disabled={!value.trim()}
+          >
+            OK
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
