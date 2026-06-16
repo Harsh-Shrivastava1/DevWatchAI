@@ -67,7 +67,6 @@ export function AuthModal({
       method: "POST",
       token: idToken,
       body: {
-        idToken,
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         name: firebaseUser.displayName || name || firebaseUser.email || "DevWatch User",

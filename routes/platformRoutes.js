@@ -131,17 +131,16 @@ async function createActivity({ workspaceId, projectId, actorId, action, targetT
 }
 
 async function resolveFirebaseUser(request) {
+  console.log("AUTH HEADER:", request.headers.authorization ? "present" : "missing");
+  console.log("BODY ID TOKEN:", request.body?.idToken ? "present" : "missing");
+
   const authHeader = request.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-  console.log("Authorization header exists:", !!authHeader);
-  console.log("Bearer token extracted:", !!token);
 
   let decoded = null;
   if (token) {
     try {
       decoded = await verifyFirebaseIdToken(token);
-      console.log("verifyIdToken succeeded");
     } catch (error) {
       console.log("verifyIdToken failed:", error.message);
     }

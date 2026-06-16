@@ -166,9 +166,12 @@ async function persistUser(user: AuthUser) {
   ).lean();
 }
 
-async function resolveLoginUser(input: z.infer<typeof loginSchema>) {
-  if (input.idToken) {
-    const decoded = await verifyFirebaseToken(input.idToken);
+async function resolveLoginUser(request: any, input: z.infer<typeof loginSchema>) {
+  const authHeader = request.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (token) {
+    const decoded = await verifyFirebaseToken(token);
     if (decoded) {
       return {
         uid: decoded.uid,
@@ -216,7 +219,7 @@ router.post(
   "/auth/login",
   asyncHandler(async (request, response) => {
     const body = loginSchema.parse(request.body);
-    const user = await resolveLoginUser(body);
+    const user = await resolveLoginUser(request, body);
     const savedUser = await persistUser(user);
     const token = signSessionToken(user);
 
