@@ -655,9 +655,6 @@ function HowToModal({
                     onClick={() => setActiveId(section.id)}
                     type="button"
                   >
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${active ? "bg-white/15" : "bg-white"}`}>
-                      <Icon size={15} />
-                    </span>
                     <span className="truncate">
                       <span className={`mr-1.5 text-xs ${active ? "text-indigo-100" : "text-neutral-400"}`}>
                         {index + 1}.
