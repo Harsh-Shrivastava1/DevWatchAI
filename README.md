@@ -8,7 +8,7 @@ Instead of using multiple tools like VS Code, GitHub, Slack, Jira, ChatGPT, and 
 
 ---
 
-# 🚀 Overview
+#  Overview
 
 DevWatch AI allows developers and teams to:
 
@@ -29,9 +29,9 @@ All data is stored securely in MongoDB Atlas while authentication is handled usi
 
 ---
 
-# ✨ Core Features
+#  Core Features
 
-## 🔐 Authentication System
+##  Authentication System
 
 ### Firebase Authentication
 
@@ -53,7 +53,7 @@ Supports:
 
 ---
 
-# 🏢 Workspaces
+#  Workspaces
 
 A Workspace is the top-level container where teams collaborate.
 
@@ -76,7 +76,7 @@ Each workspace contains:
 
 ---
 
-# 📁 Projects
+#  Projects
 
 Projects belong to a workspace.
 
@@ -101,7 +101,7 @@ Project Information:
 
 ---
 
-# 💻 Cloud IDE
+#  Cloud IDE
 
 DevWatch AI includes a browser-based coding environment.
 
@@ -138,7 +138,7 @@ Supported Languages:
 
 ---
 
-# 🤖 AI Assistant (Groq Powered)
+#  AI Assistant (Groq Powered)
 
 All AI functionality is powered using the Groq API.
 
@@ -222,7 +222,7 @@ AI understands:
 
 ---
 
-# 👥 Team Collaboration
+#  Team Collaboration
 
 Multiple developers can collaborate inside the same workspace.
 
@@ -248,7 +248,7 @@ Permissions are managed based on role.
 
 ---
 
-# 💬 Team Chat
+#  Team Chat
 
 Built-in real-time communication system.
 
@@ -270,7 +270,7 @@ Examples:
 
 ---
 
-# 📊 Monitoring System
+#  Monitoring System
 
 Track project activity and team performance.
 
@@ -285,7 +285,7 @@ Monitor:
 
 ---
 
-# 🔔 Notifications
+#  Notifications
 
 Real-time notifications.
 
@@ -300,7 +300,7 @@ Examples:
 
 ---
 
-# 📈 Analytics
+#  Analytics
 
 Track development performance.
 
@@ -315,7 +315,7 @@ Metrics:
 
 ---
 
-# 📋 Dashboard
+#  Dashboard
 
 Central workspace overview.
 
@@ -348,7 +348,7 @@ Shows currently active users.
 
 ---
 
-# 📦 Project Export
+#  Project Export
 
 Export complete project as ZIP.
 
@@ -367,7 +367,7 @@ Useful for:
 
 ---
 
-# 🎓 New User Onboarding
+#  New User Onboarding
 
 Shown only once after account creation.
 
@@ -405,7 +405,7 @@ The onboarding tutorial is never shown again after completion.
 
 ---
 
-# 📖 How To Use Guide
+#  How To Use Guide
 
 Accessible from the landing page.
 
@@ -455,7 +455,7 @@ Explains:
 
 ---
 
-# 🏗️ Technology Stack
+#  Technology Stack
 
 ## Frontend
 
@@ -490,7 +490,7 @@ Supported Models:
 
 ---
 
-# 🗄️ Database Collections
+#  Database Collections
 
 ## Users
 
@@ -583,7 +583,7 @@ Supported Models:
 
 ---
 
-# ⚙️ Environment Variables
+#  Environment Variables
 
 ```env
 # MongoDB
@@ -611,7 +611,7 @@ FIREBASE_PRIVATE_KEY=
 
 ---
 
-# 🖥️ Running Locally
+#  Running Locally
 
 Install dependencies:
 
@@ -645,7 +645,7 @@ http://localhost:4000
 
 ---
 
-# 🛣️ Future Roadmap
+#  Future Roadmap
 
 ## Phase 2
 
@@ -670,7 +670,7 @@ http://localhost:4000
 
 ---
 
-# 🎯 Vision
+#  Vision
 
 DevWatch AI aims to become an all-in-one developer workspace where teams can:
 
