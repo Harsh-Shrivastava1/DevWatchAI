@@ -114,7 +114,7 @@ const aiReviewSchema = new mongoose.Schema(
     model: {
       type: String,
       trim: true,
-      default: "llama-3.3-70b-versatile"
+      default: () => process.env.GROQ_MODEL || "openai/gpt-oss-120b"
     },
     rawResponse: mongoose.Schema.Types.Mixed
   },

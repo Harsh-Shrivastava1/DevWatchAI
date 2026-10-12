@@ -6,20 +6,26 @@ import type { FormEvent, ReactNode } from "react";
 import type { OnMount } from "@monaco-editor/react";
 import { io, type Socket } from "socket.io-client";
 import {
+  AlertCircle,
   AlertTriangle,
   Bot,
+  CheckCircle2,
   ChevronLeft,
   Code2,
   Download,
+  FileCode2,
   FilePlus2,
   Gauge,
   History,
   Import,
   Loader2,
   MessageSquare,
+  PanelLeft,
+  PanelRight,
   Play,
   RefreshCw,
   Rocket,
+  RotateCw,
   Save,
   Send,
   Square,
@@ -153,7 +159,10 @@ export function CloudIDE({
   const [importProgress, setImportProgress] = useState<number | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAction, setRetryAction] = useState<(() => void) | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [explorerOpen, setExplorerOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
 
   const activeFile = files.find((file) => file.id === activeFileId) || null;
   const activeExecution = executions.find((execution) => execution.status === "running") || null;
@@ -164,6 +173,15 @@ export function CloudIDE({
         .filter(Boolean) as WorkspaceFile[],
     [files, openTabs]
   );
+
+  function closeTab(fileId: string, event?: React.MouseEvent) {
+    event?.stopPropagation();
+    const nextTabs = openTabs.filter((id) => id !== fileId);
+    setOpenTabs(nextTabs);
+    if (activeFileId === fileId) {
+      setActiveFileId(nextTabs.length > 0 ? nextTabs[nextTabs.length - 1] : null);
+    }
+  }
   const displayName = project?.projectName || projectName || "DevWatch Project";
   const activeContent = activeFile ? drafts[activeFile.id] ?? activeFile.content : "";
 
@@ -670,6 +688,7 @@ export function CloudIDE({
     setPanel("ai");
     setAiLoading(true);
     setError(null);
+    setRetryAction(null);
     try {
       const result = await apiData<AIReview>("/api/ai/review", {
         method: "POST",
@@ -687,6 +706,7 @@ export function CloudIDE({
       setStatus("AI review stored");
     } catch (reviewError) {
       setError(errorMessage(reviewError));
+      setRetryAction(() => () => void runReview(analysisType));
     } finally {
       setAiLoading(false);
     }
@@ -696,6 +716,7 @@ export function CloudIDE({
     setPanel("ai");
     setAiLoading(true);
     setError(null);
+    setRetryAction(null);
     try {
       const result = await apiData<AIReview>("/api/ai/project-analysis", {
         method: "POST",
@@ -707,23 +728,26 @@ export function CloudIDE({
       setStatus("Project analysis stored");
     } catch (analysisError) {
       setError(errorMessage(analysisError));
+      setRetryAction(() => () => void runProjectAnalysis());
     } finally {
       setAiLoading(false);
     }
   }
 
-  async function askAssistant(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!assistantQuestion.trim()) return;
+  async function askAssistant(event?: FormEvent<HTMLFormElement>, questionOverride?: string) {
+    event?.preventDefault();
+    const query = (questionOverride ?? assistantQuestion).trim();
+    if (!query) return;
     setAiLoading(true);
     setError(null);
+    setRetryAction(null);
     try {
       const result = await apiData<unknown>("/api/ai/chat", {
         method: "POST",
         token,
         body: {
           projectId,
-          question: assistantQuestion.trim(),
+          question: query,
           context: activeFile ? { filePath: activeFile.path, code: activeContent } : undefined
         }
       });
@@ -731,6 +755,7 @@ export function CloudIDE({
       setAssistantQuestion("");
     } catch (assistantError) {
       setError(errorMessage(assistantError));
+      setRetryAction(() => () => void askAssistant(undefined, query));
     } finally {
       setAiLoading(false);
     }
@@ -740,6 +765,7 @@ export function CloudIDE({
     if (!file) return;
     setAiLoading(true);
     setError(null);
+    setRetryAction(null);
     setPanel("ai");
     try {
       const result = await apiData<AutoFixPreview>("/api/ai/auto-fix", {
@@ -756,6 +782,7 @@ export function CloudIDE({
       openFile(file);
     } catch (fixError) {
       setError(errorMessage(fixError));
+      setRetryAction(() => () => void previewAutoFix(issue, file));
     } finally {
       setAiLoading(false);
     }
@@ -930,7 +957,8 @@ export function CloudIDE({
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[#f7f8fb] text-neutral-950">
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2">
+      {/* Top Application Bar */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-3">
         <input
           className="hidden"
           multiple
@@ -942,114 +970,260 @@ export function CloudIDE({
           ref={toolbarImportRef}
           type="file"
         />
-        <IconButton label="Back to projects" onClick={onBack}>
-          <ChevronLeft size={16} />
-        </IconButton>
-        <button
-          className="mr-auto flex min-w-0 items-center gap-3 rounded-md px-2 py-1 text-left hover:bg-neutral-50"
-          onClick={onDashboard}
-          type="button"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-indigo-700 text-xs font-semibold text-white">
-            DW
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{displayName}</span>
-            <span className="block truncate text-xs text-neutral-500">{status}</span>
-          </span>
-        </button>
-        <PresenceStrip presence={presence} />
-        <div className="flex flex-wrap gap-1.5">
-          <Button disabled={!activeFile || saving} onClick={() => void saveFile()}>
-            {saving ? <Loader2 className="animate-spin" size={15} /> : <Save size={15} />}
-            Save
-          </Button>
-          <Button disabled={importing} onClick={() => createFile("/")}>
-            <FilePlus2 size={15} />
-            New File
-          </Button>
-          <Button disabled={importing} onClick={() => toolbarImportRef.current?.click()}>
-            {importing ? <Loader2 className="animate-spin" size={15} /> : <Upload size={15} />}
-            {importing ? `Importing ${importProgress ?? 0}%` : "Import Files"}
-          </Button>
-          {activeExecution ? (
-            <>
-              <Button onClick={stopProject} variant="danger">
-                <Square size={15} />
-                Stop
-              </Button>
-              <Button onClick={runProject}>
-                <RefreshCw size={15} />
-                Restart
-              </Button>
-            </>
-          ) : (
-            <Button onClick={runProject}>
-              <Play size={15} />
-              Run
-            </Button>
-          )}
-          <Button onClick={deployProject}>
-            <Rocket size={15} />
-            Deploy
-          </Button>
-          <Button disabled={!activeFile || aiLoading} onClick={() => void runReview()}>
-            <Bot size={15} />
-            AI Review
-          </Button>
-          <Button onClick={() => setInviteOpen(true)}>
-            <UserPlus size={15} />
-            Invite
-          </Button>
-          <IconButton label="Export ZIP" onClick={exportProject}>
-            <Download size={16} />
+
+        {/* Left: Navigation & Project Identity */}
+        <div className="flex min-w-0 items-center gap-2">
+          <IconButton label="Back to projects" onClick={onBack}>
+            <ChevronLeft size={16} />
           </IconButton>
+          <button
+            className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left transition hover:bg-neutral-50"
+            onClick={onDashboard}
+            title="Go to Dashboard Overview"
+            type="button"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-700 text-xs font-bold text-white shadow-sm">
+              DW
+            </span>
+            <div className="min-w-0">
+              <span className="block truncate text-xs font-bold text-neutral-900">{displayName}</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="truncate">{status}</span>
+              </span>
+            </div>
+          </button>
+
+          {/* Active file breadcrumb if open */}
+          {activeFile && (
+            <div className="hidden items-center gap-1.5 border-l border-neutral-200 pl-2.5 md:flex">
+              <FileCode2 size={13} className="text-neutral-400" />
+              <span className="font-mono text-xs text-neutral-600">{activeFile.path}</span>
+              {dirtyFileId === activeFile.id && (
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" title="Unsaved changes" />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Center: Live Presence */}
+        <div className="hidden items-center gap-2 xl:flex">
+          <PresenceStrip presence={presence} />
+          <Button className="h-7 text-xs" onClick={() => setInviteOpen(true)}>
+            <UserPlus size={13} />
+            <span>Invite</span>
+          </Button>
+        </div>
+
+        {/* Right: Grouped Controls */}
+        <div className="flex items-center gap-2">
+          {/* Mobile Presence */}
+          <div className="flex items-center xl:hidden">
+            <PresenceStrip presence={presence} />
+          </div>
+
+          {/* Execution Controls */}
+          <div className="flex items-center rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+            {activeExecution ? (
+              <>
+                <Button className="h-7 px-2.5 text-xs" onClick={stopProject} variant="danger">
+                  <Square size={13} />
+                  <span>Stop</span>
+                </Button>
+                <button
+                  className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-neutral-700 transition hover:bg-white"
+                  onClick={runProject}
+                  title="Restart execution"
+                  type="button"
+                >
+                  <RefreshCw size={13} />
+                </button>
+              </>
+            ) : (
+              <Button className="h-7 px-2.5 text-xs" onClick={runProject} variant="primary">
+                <Play size={13} />
+                <span>Run</span>
+              </Button>
+            )}
+            <button
+              className="flex h-7 items-center gap-1 rounded-md px-2.5 text-xs font-medium text-neutral-700 transition hover:bg-white"
+              onClick={deployProject}
+              title="Deploy project"
+              type="button"
+            >
+              <Rocket size={13} className="text-indigo-700" />
+              <span className="hidden sm:inline">Deploy</span>
+            </button>
+          </div>
+
+          {/* File Operations */}
+          <div className="flex items-center gap-1">
+            <Button
+              className="h-7 text-xs"
+              disabled={!activeFile || saving}
+              onClick={() => void saveFile()}
+              variant={dirtyFileId === activeFile?.id ? "primary" : "secondary"}
+            >
+              {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
+              <span>Save</span>
+            </Button>
+            <IconButton
+              className="h-7 w-7"
+              disabled={importing}
+              label="New File"
+              onClick={() => createFile("/")}
+            >
+              <FilePlus2 size={14} />
+            </IconButton>
+            <IconButton
+              className="h-7 w-7"
+              disabled={importing}
+              label="Import Files"
+              onClick={() => toolbarImportRef.current?.click()}
+            >
+              {importing ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />}
+            </IconButton>
+            <IconButton
+              className="h-7 w-7"
+              label="Export Project as ZIP"
+              onClick={exportProject}
+            >
+              <Download size={14} />
+            </IconButton>
+          </div>
+
+          {/* AI Review Action */}
+          <Button
+            className="h-7 text-xs"
+            disabled={!activeFile || aiLoading}
+            onClick={() => void runReview()}
+          >
+            <Bot size={13} className="text-indigo-700" />
+            <span className="hidden md:inline">AI Review</span>
+          </Button>
+
+          {/* Workspace Layout Toggles */}
+          <div className="flex items-center gap-0.5 border-l border-neutral-200 pl-1.5">
+            <button
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md border text-neutral-600 transition",
+                explorerOpen ? "border-neutral-200 bg-neutral-100 text-neutral-900" : "border-transparent hover:bg-neutral-100"
+              )}
+              onClick={() => setExplorerOpen((prev) => !prev)}
+              title={explorerOpen ? "Collapse File Explorer" : "Expand File Explorer"}
+              type="button"
+            >
+              <PanelLeft size={14} />
+            </button>
+            <button
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md border text-neutral-600 transition",
+                inspectorOpen ? "border-neutral-200 bg-neutral-100 text-neutral-900" : "border-transparent hover:bg-neutral-100"
+              )}
+              onClick={() => setInspectorOpen((prev) => !prev)}
+              title={inspectorOpen ? "Collapse Inspector Panel" : "Expand Inspector Panel"}
+              type="button"
+            >
+              <PanelRight size={14} />
+            </button>
+          </div>
         </div>
       </header>
 
-      {error ? <NoticeBar message={error} tone="error" onClose={() => setError(null)} /> : null}
+      {error ? (
+        <NoticeBar
+          message={error}
+          tone="error"
+          onClose={() => {
+            setError(null);
+            setRetryAction(null);
+          }}
+          onRetry={
+            retryAction
+              ? () => {
+                  setError(null);
+                  const action = retryAction;
+                  setRetryAction(null);
+                  action();
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {notice ? <NoticeBar message={notice} tone="success" onClose={() => setNotice(null)} /> : null}
 
-      <section className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_390px]">
-        <aside className="hidden min-h-0 border-r border-neutral-200 bg-white lg:flex lg:flex-col">
-          <FileExplorer
-            activeFileId={activeFileId}
-            expandedPaths={expandedPaths}
-            files={files}
-            importing={importing}
-            importProgress={importProgress}
-            onCreateFile={createFile}
-            onCreateFolder={createFolder}
-            onDelete={deleteEntry}
-            onDuplicate={duplicateEntry}
-            onExpandedPathsChange={setExpandedPaths}
-            onImport={importFiles}
-            onMove={moveEntry}
-            onOpen={openFile}
-            onRename={renameEntry}
-          />
-        </aside>
+      {/* Main 3-Column IDE Workspace */}
+      <section
+        className={cn(
+          "grid min-h-0 flex-1",
+          explorerOpen && inspectorOpen
+            ? "grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_380px]"
+            : explorerOpen && !inspectorOpen
+            ? "grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]"
+            : !explorerOpen && inspectorOpen
+            ? "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px]"
+            : "grid-cols-1"
+        )}
+      >
+        {/* Left: File Explorer Panel */}
+        {explorerOpen && (
+          <aside className="hidden min-h-0 border-r border-neutral-200 bg-white lg:flex lg:flex-col">
+            <FileExplorer
+              activeFileId={activeFileId}
+              expandedPaths={expandedPaths}
+              files={files}
+              importing={importing}
+              importProgress={importProgress}
+              onCreateFile={createFile}
+              onCreateFolder={createFolder}
+              onDelete={deleteEntry}
+              onDuplicate={duplicateEntry}
+              onExpandedPathsChange={setExpandedPaths}
+              onImport={importFiles}
+              onMove={moveEntry}
+              onOpen={openFile}
+              onRename={renameEntry}
+            />
+          </aside>
+        )}
 
-        <section className="flex min-h-0 min-w-0 flex-col border-r border-neutral-200 bg-white">
-          <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-neutral-200 bg-neutral-50 px-2 pt-2">
-            {tabs.map((file) => (
-              <button
-                className={cn(
-                  "flex h-9 shrink-0 items-center gap-2 rounded-t-md border border-b-0 px-3 text-sm",
-                  activeFileId === file.id
-                    ? "border-neutral-200 bg-white text-neutral-950"
-                    : "border-transparent text-neutral-500 hover:bg-white"
-                )}
-                key={file.id}
-                onClick={() => openFile(file)}
-                type="button"
-              >
-                <Code2 size={14} />
-                {file.name}
-                {dirtyFileId === file.id ? <span className="h-2 w-2 rounded-full bg-amber-500" /> : null}
-              </button>
-            ))}
+        {/* Center: Monaco Code Editor with Tabs & Status Bar */}
+        <section className="flex min-h-0 min-w-0 flex-col bg-white">
+          {/* Tabs Bar */}
+          <div className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-b border-neutral-200 bg-neutral-100/70 px-2">
+            {tabs.map((file) => {
+              const isActive = activeFileId === file.id;
+              const isDirty = dirtyFileId === file.id;
+              return (
+                <div
+                  className={cn(
+                    "group flex h-8 shrink-0 items-center gap-2 rounded-t-md border border-b-0 px-2.5 text-xs transition cursor-pointer select-none",
+                    isActive
+                      ? "border-neutral-200 bg-white text-neutral-950 font-semibold shadow-sm"
+                      : "border-transparent bg-transparent text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                  )}
+                  key={file.id}
+                  onClick={() => openFile(file)}
+                >
+                  <Code2 size={13} className={isActive ? "text-indigo-700" : "text-neutral-400"} />
+                  <span className="max-w-[140px] truncate">{file.name}</span>
+                  {isDirty && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" title="Unsaved changes" />
+                  )}
+                  <button
+                    aria-label={`Close ${file.name}`}
+                    className="ml-0.5 rounded p-0.5 opacity-0 transition group-hover:opacity-100 hover:bg-neutral-200 hover:text-neutral-900"
+                    onClick={(e) => closeTab(file.id, e)}
+                    type="button"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Monaco Editor Container */}
           <div className="min-h-0 flex-1">
             {loading ? (
               <CenteredMessage title="Loading project">Restoring files and collaboration state.</CenteredMessage>
@@ -1079,6 +1253,8 @@ export function CloudIDE({
                 onMount={handleEditorMount}
                 options={{
                   automaticLayout: true,
+                  fontFamily:
+                    "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
                   fontSize: 14,
                   lineHeight: 22,
                   minimap: { enabled: false },
@@ -1095,59 +1271,86 @@ export function CloudIDE({
               </CenteredMessage>
             )}
           </div>
+
+          {/* Bottom Editor Status Bar */}
+          <div className="flex h-6 shrink-0 items-center justify-between border-t border-neutral-200 bg-neutral-50 px-3 text-[11px] text-neutral-500">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1 font-mono">
+                <Code2 size={12} />
+                {activeFile ? activeFile.language : "plain"}
+              </span>
+              {activeFile && (
+                <span className="font-mono">Rev {activeFile.revision}</span>
+              )}
+              {dirtyFileId === activeFile?.id ? (
+                <span className="font-medium text-amber-600">Unsaved changes</span>
+              ) : activeFile ? (
+                <span className="text-neutral-400">All changes saved</span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-3">
+              <span>UTF-8</span>
+              <span>Monaco Editor</span>
+            </div>
+          </div>
         </section>
 
-        <aside className="flex min-h-0 flex-col bg-white">
-          <div className="grid grid-cols-5 border-b border-neutral-200 p-1.5">
-            <InspectorTab active={panel === "ai"} icon={<Bot size={15} />} label="AI" onClick={() => setPanel("ai")} />
-            <InspectorTab active={panel === "chat"} icon={<MessageSquare size={15} />} label="Chat" onClick={() => setPanel("chat")} />
-            <InspectorTab active={panel === "monitoring"} icon={<Gauge size={15} />} label="Health" onClick={() => setPanel("monitoring")} />
-            <InspectorTab active={panel === "console"} icon={<Code2 size={15} />} label="Output" onClick={() => setPanel("console")} />
-            <InspectorTab active={panel === "history"} icon={<History size={15} />} label="History" onClick={() => setPanel("history")} />
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            {panel === "ai" ? (
-              <AIReviewPanel
-                activeFile={activeFile}
-                assistantQuestion={assistantQuestion}
-                assistantResult={assistantResult}
-                loading={aiLoading}
-                pendingFix={pendingFix}
-                review={review}
-                setAssistantQuestion={setAssistantQuestion}
-                applyPendingFix={applyPendingFix}
-                askAssistant={askAssistant}
-                previewAutoFix={() => void previewAutoFix()}
-                runProjectAnalysis={runProjectAnalysis}
-                runReview={runReview}
-              />
-            ) : null}
-            {panel === "chat" ? (
-              <ChatPanel
-                currentUser={user}
-                hasOlder={hasOlderMessages}
-                message={message}
-                messages={messages}
-                typingUsers={typingUsers}
-                loadOlder={loadOlderMessages}
-                sendMessage={sendMessage}
-                setMessage={updateMessage}
-              />
-            ) : null}
-            {panel === "monitoring" ? <MonitorPanel records={monitoring} presence={presence} /> : null}
-            {panel === "console" ? (
-              <ConsolePanel
-                consoleOutput={consoleOutput}
-                deployment={deployment}
-                executions={executions}
-                onAnalyzeError={analyzeRuntimeError}
-                onClear={() => setConsoleOutput("")}
-                onRun={runProject}
-              />
-            ) : null}
-            {panel === "history" ? <HistoryPanel versions={versions} onRestore={restoreVersion} /> : null}
-          </div>
-        </aside>
+        {/* Right: Inspector Panel */}
+        {inspectorOpen && (
+          <aside className="flex min-h-0 flex-col border-l border-neutral-200 bg-white">
+            <div className="border-b border-neutral-200 bg-neutral-50/50 p-1.5">
+              <div className="grid grid-cols-5 gap-1">
+                <InspectorTab active={panel === "ai"} icon={<Bot size={14} />} label="AI" onClick={() => setPanel("ai")} />
+                <InspectorTab active={panel === "chat"} icon={<MessageSquare size={14} />} label="Chat" onClick={() => setPanel("chat")} />
+                <InspectorTab active={panel === "monitoring"} icon={<Gauge size={14} />} label="Health" onClick={() => setPanel("monitoring")} />
+                <InspectorTab active={panel === "console"} icon={<Code2 size={14} />} label="Output" onClick={() => setPanel("console")} />
+                <InspectorTab active={panel === "history"} icon={<History size={14} />} label="History" onClick={() => setPanel("history")} />
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {panel === "ai" ? (
+                <AIReviewPanel
+                  activeFile={activeFile}
+                  assistantQuestion={assistantQuestion}
+                  assistantResult={assistantResult}
+                  loading={aiLoading}
+                  pendingFix={pendingFix}
+                  review={review}
+                  setAssistantQuestion={setAssistantQuestion}
+                  applyPendingFix={applyPendingFix}
+                  askAssistant={askAssistant}
+                  previewAutoFix={() => void previewAutoFix()}
+                  runProjectAnalysis={runProjectAnalysis}
+                  runReview={runReview}
+                />
+              ) : null}
+              {panel === "chat" ? (
+                <ChatPanel
+                  currentUser={user}
+                  hasOlder={hasOlderMessages}
+                  message={message}
+                  messages={messages}
+                  typingUsers={typingUsers}
+                  loadOlder={loadOlderMessages}
+                  sendMessage={sendMessage}
+                  setMessage={updateMessage}
+                />
+              ) : null}
+              {panel === "monitoring" ? <MonitorPanel records={monitoring} presence={presence} /> : null}
+              {panel === "console" ? (
+                <ConsolePanel
+                  consoleOutput={consoleOutput}
+                  deployment={deployment}
+                  executions={executions}
+                  onAnalyzeError={analyzeRuntimeError}
+                  onClear={() => setConsoleOutput("")}
+                  onRun={runProject}
+                />
+              ) : null}
+              {panel === "history" ? <HistoryPanel versions={versions} onRestore={restoreVersion} /> : null}
+            </div>
+          </aside>
+        )}
       </section>
 
       {inviteOpen && project ? (
@@ -1476,7 +1679,7 @@ function ConsolePanel({
           Clear
         </button>
       </div>
-      <pre className="min-h-56 max-h-[420px] overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-5 text-neutral-100">
+      <pre className="min-h-56 max-h-[420px] overflow-auto rounded-lg bg-neutral-950 p-4 font-mono text-xs leading-5 text-neutral-100">
         {consoleOutput || latest?.stdout || latest?.stderr || "Run the project to stream stdout and stderr."}
       </pre>
       {latest && ["failed", "timed-out"].includes(latest.status) ? (
@@ -1813,26 +2016,98 @@ function MarkdownMessage({ text }: { text: string }) {
   );
 }
 
+function formatClientErrorMessage(raw: string): string {
+  if (!raw) return "An unexpected error occurred.";
+
+  let cleaned = raw.trim();
+
+  // If message contains JSON (e.g. from provider or uncaught raw error payload)
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed?.error?.message) {
+        cleaned = parsed.error.message;
+      } else if (parsed?.message) {
+        cleaned = parsed.message;
+      }
+    } catch {}
+  }
+
+  // Strip leading HTTP status code like "404 "
+  cleaned = cleaned.replace(/^\d{3}\s+/, "").trim();
+
+  const lower = cleaned.toLowerCase();
+  if (
+    lower.includes("model_not_found") ||
+    lower.includes("does not exist or you do not have access") ||
+    lower.includes("model is unavailable")
+  ) {
+    return "The configured AI model is unavailable or unsupported. Please check GROQ_MODEL in your environment settings.";
+  }
+  if (lower.includes("invalid_api_key") || lower.includes("authentication failed") || lower.includes("groq_api_key")) {
+    return "AI service authentication failed. Please check GROQ_API_KEY in your server configuration.";
+  }
+  if (lower.includes("rate limit") || lower.includes("rate_limit")) {
+    return "AI rate limit reached. Please wait a moment before trying again.";
+  }
+  if (lower.includes("timed out") || lower.includes("timeout")) {
+    return "The AI request timed out. Please try again.";
+  }
+
+  return cleaned || "An unexpected error occurred.";
+}
+
 function NoticeBar({
   message,
   onClose,
-  tone
+  tone,
+  onRetry
 }: {
   message: string;
   onClose: () => void;
   tone: "error" | "success";
+  onRetry?: () => void;
 }) {
+  const displayMessage = tone === "error" ? formatClientErrorMessage(message) : message;
+
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5 text-sm",
+        "flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2 text-xs transition-colors",
         tone === "error"
-          ? "border-rose-200 bg-rose-50 text-rose-800"
-          : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          ? "border-rose-200 bg-rose-50/90 text-rose-900"
+          : "border-emerald-200 bg-emerald-50/90 text-emerald-900"
       )}
     >
-      <span>{message}</span>
-      <button aria-label="Close message" onClick={onClose} type="button"><X size={15} /></button>
+      <div className="flex min-w-0 items-center gap-2">
+        {tone === "error" ? (
+          <AlertCircle size={14} className="shrink-0 text-rose-600" />
+        ) : (
+          <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+        )}
+        <span className="truncate font-medium">{displayMessage}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-1 rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 transition-colors hover:bg-rose-200 active:bg-rose-300"
+          >
+            <RotateCw size={11} />
+            <span>Retry</span>
+          </button>
+        ) : null}
+        <button
+          aria-label="Close message"
+          onClick={onClose}
+          type="button"
+          className="rounded p-0.5 text-neutral-400 transition-colors hover:bg-black/5 hover:text-neutral-700"
+        >
+          <X size={13} />
+        </button>
+      </div>
     </div>
   );
 }

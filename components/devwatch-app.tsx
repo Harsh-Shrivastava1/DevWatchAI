@@ -164,7 +164,8 @@ export function DevWatchApp() {
       ) : null}
       <WorkspaceShell
         user={user}
-        view={view === "ide" ? "overview" : view}
+        view={view}
+        currentProjectId={projectId}
         onHome={() => setView("landing")}
         onOpenProject={openProject}
         onSignOut={handleSignOut}

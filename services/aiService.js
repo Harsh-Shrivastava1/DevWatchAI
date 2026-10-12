@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { AIReview, File, Project, Activity, Monitoring } = require("../models");
-const { GROQ_MODEL, createGroqChatCompletion } = require("./groqClient");
+const { GROQ_MODEL, getGroqModel, createGroqChatCompletion } = require("./groqClient");
 
 function systemPrompt(kind) {
   return [
@@ -85,7 +85,7 @@ async function storeReview({
     analysisType,
     summary: result.summary || "",
     issues: normalizeIssues(result.issues),
-    model: GROQ_MODEL,
+    model: result.model || getGroqModel(),
     rawResponse
   });
 

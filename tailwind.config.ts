@@ -8,6 +8,16 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Aptos"', '"Segoe UI"', "Arial", "sans-serif"],
+        mono: [
+          '"JetBrains Mono"',
+          '"Fira Code"',
+          '"Cascadia Code"',
+          "Consolas",
+          "monospace"
+        ]
+      },
       colors: {
         ink: "#171717",
         mist: "#f7f8fb",

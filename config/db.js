@@ -1,4 +1,11 @@
+const dns = require("node:dns");
 const mongoose = require("mongoose");
+
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch {
+  // fallback if custom DNS servers cannot be set
+}
 
 mongoose.set("strictQuery", true);
 

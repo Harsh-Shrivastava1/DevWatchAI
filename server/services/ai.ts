@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 let groqClient: Groq | null = null;
 
 export type ReviewRequest = {
@@ -62,10 +62,18 @@ const localFallback: ReviewResponse = {
 };
 
 function extractJson(content: string) {
+  const cleaned = (content || "").trim();
   try {
-    return JSON.parse(content);
+    return JSON.parse(cleaned);
   } catch {
-    const match = content.match(/\{[\s\S]*\}/);
+    const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenceMatch) {
+      try {
+        return JSON.parse(fenceMatch[1].trim());
+      } catch {}
+    }
+
+    const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) {
       throw new Error("Groq response did not include valid JSON.");
     }

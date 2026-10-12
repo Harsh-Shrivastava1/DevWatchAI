@@ -2,30 +2,40 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonSize = "sm" | "md" | "lg";
 
 export function Button({
   className,
   variant = "secondary",
+  size = "md",
   children,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
+  size?: ButtonSize;
 }) {
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-ink text-white border-ink hover:bg-neutral-800 disabled:bg-neutral-400",
+      "bg-indigo-700 text-white border-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 disabled:bg-neutral-100 disabled:border-neutral-200 disabled:text-neutral-400 disabled:shadow-none shadow-sm",
     secondary:
-      "bg-white text-neutral-900 border-line hover:border-neutral-300 hover:bg-neutral-50",
+      "bg-white text-neutral-800 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 active:bg-neutral-100 disabled:bg-neutral-50 disabled:border-neutral-200 disabled:text-neutral-400 disabled:shadow-none shadow-sm",
     ghost:
-      "bg-transparent text-neutral-700 border-transparent hover:bg-neutral-100",
+      "bg-transparent text-neutral-600 border-transparent hover:bg-neutral-100 hover:text-neutral-900 active:bg-neutral-200 disabled:text-neutral-300 disabled:hover:bg-transparent",
     danger:
-      "bg-rose-600 text-white border-rose-600 hover:bg-rose-700"
+      "bg-rose-600 text-white border-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:bg-rose-100 disabled:border-rose-200 disabled:text-rose-300 disabled:shadow-none shadow-sm"
+  };
+
+  const sizes: Record<ButtonSize, string> = {
+    sm: "h-8 px-2.5 text-xs rounded-md",
+    md: "h-9 px-3.5 text-xs font-semibold rounded-lg",
+    lg: "h-10 px-4 text-sm font-semibold rounded-lg"
   };
 
   return (
     <button
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:cursor-not-allowed",
+        "inline-flex select-none items-center justify-center gap-2 border font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 disabled:cursor-not-allowed",
+        sizes[size],
         variants[variant],
         className
       )}
@@ -40,16 +50,25 @@ export function IconButton({
   className,
   children,
   label,
+  size = "md",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   label: string;
+  size?: "sm" | "md" | "lg";
 }) {
+  const sizes = {
+    sm: "h-7 w-7 text-xs rounded-md",
+    md: "h-8 w-8 text-xs rounded-lg",
+    lg: "h-9 w-9 text-sm rounded-lg"
+  };
+
   return (
     <button
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-md border border-line bg-white text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-violet-300",
+        "inline-flex select-none items-center justify-center border border-neutral-200 bg-white text-neutral-600 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-950 active:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:pointer-events-none",
+        sizes[size],
         className
       )}
       {...props}
@@ -67,7 +86,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-neutral-200 bg-white transition-colors duration-200",
+        "rounded-xl border border-neutral-200 bg-white shadow-sm transition-colors duration-200",
         className
       )}
       {...props}
@@ -98,7 +117,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold",
         tones[tone],
         className
       )}
@@ -116,17 +135,17 @@ export function ProgressBar({
   tone?: "violet" | "green" | "amber" | "blue" | "red";
 }) {
   const tones = {
-    violet: "bg-violet-500",
-    green: "bg-emerald-500",
+    violet: "bg-violet-600",
+    green: "bg-emerald-600",
     amber: "bg-amber-500",
-    blue: "bg-sky-500",
-    red: "bg-rose-500"
+    blue: "bg-sky-600",
+    red: "bg-rose-600"
   };
 
   return (
-    <div className="h-2 w-full overflow-hidden rounded-md bg-neutral-100">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
       <div
-        className={cn("h-full rounded-md", tones[tone])}
+        className={cn("h-full rounded-full transition-all duration-300", tones[tone])}
         style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
       />
     </div>
@@ -146,11 +165,11 @@ export function SectionTitle({
     <div className="mb-4 flex items-center justify-between gap-4">
       <div>
         {eyebrow ? (
-          <p className="mb-1 text-xs font-semibold uppercase text-violet-700">
+          <p className="mb-1 text-[11px] font-bold tracking-wider uppercase text-indigo-700">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="text-xl font-semibold text-neutral-950">{title}</h2>
+        <h2 className="text-lg font-bold text-neutral-950">{title}</h2>
       </div>
       {action}
     </div>
